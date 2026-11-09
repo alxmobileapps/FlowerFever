@@ -44,7 +44,7 @@
     };
 
     // full-screen ads are loaded ahead of time so they open instantly
-    let interReady = false, rewardReady = false;
+    let interReady = false, rewardReady = false, rewardBusy = false;
     const loadInter = async () => { await ready; try { await AdMob.prepareInterstitial({ adId: cfg.interstitialId, isTesting: test }); interReady = true; } catch (e) { interReady = false; setTimeout(loadInter, 60000); } };
     const loadReward = async () => { await ready; try { await AdMob.prepareRewardVideoAd({ adId: cfg.rewardedId, isTesting: test }); rewardReady = true; } catch (e) { rewardReady = false; setTimeout(loadReward, 60000); } };
     loadInter(); loadReward();
@@ -67,19 +67,45 @@
         loadInter();
       },
       async showRewarded(kind) {
-        if (!rewardReady) {
-          await loadReward();
-          if (!rewardReady) { alertNoAd(); return false; }
-        }
-        rewardReady = false;
-        let earned = false;
-        const rew = once([['onRewardedVideoAdReward', 1]]); rew.then(v => { if (v === 1) earned = true; });
-        const closed = once([['onRewardedVideoAdDismissed', 1], ['onRewardedVideoAdFailedToShow', 0]], 180000);
-        quiet(true); try { const r = await AdMob.showRewardVideoAd(); if (r) earned = true; await closed; } catch (e) { log('reward', e); } quiet(false);
-        loadReward();
-        return earned;
+        if (rewardBusy) return false;   // a second tap while the ad is loading
+        rewardBusy = true; loading(true);   // "Ads loading... Please wait." from the moment of the tap
+        try {
+          if (!rewardReady) {
+            await loadReward();
+            if (!rewardReady) { loading(false); alertNoAd(); return false; }
+          }
+          rewardReady = false;
+          let earned = false;
+          const rew = once([['onRewardedVideoAdReward', 1]]); rew.then(v => { if (v === 1) earned = true; });
+          const closed = once([['onRewardedVideoAdDismissed', 1], ['onRewardedVideoAdFailedToShow', 0]], 180000);
+          once([['onRewardedVideoAdShowed', 1], ['onRewardedVideoAdFailedToShow', 0]], 30000).then(() => loading(false));
+          quiet(true); try { const r = await AdMob.showRewardVideoAd(); if (r) earned = true; await closed; } catch (e) { log('reward', e); } quiet(false);
+          loadReward();
+          return earned;
+        } finally { loading(false); rewardBusy = false; }
       }
     };
+  }
+  // "Ads loading... Please wait." window while a rewarded ad is being fetched (it can take a few seconds)
+  let loadTimer = 0;
+  function loading(on) {
+    try {
+      let d = document.getElementById('ffAdLoading');
+      clearTimeout(loadTimer);
+      if (!on) { if (d) d.remove(); return; }
+      if (!d) {
+        d = document.createElement('div'); d.id = 'ffAdLoading'; d.setAttribute('role', 'alert');
+        d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(60,20,40,.6);padding:16px;touch-action:none';
+        d.innerHTML = '<style>@keyframes ffAdSpin{to{transform:rotate(360deg)}}</style>'
+          + '<div style="background:#fff;border-radius:24px;padding:24px 28px;max-width:300px;width:100%;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.35);font-family:Nunito,sans-serif">'
+          + '<div style="width:46px;height:46px;margin:0 auto 14px;border-radius:50%;border:5px solid #fcd3e3;border-top-color:#e8467e;animation:ffAdSpin .8s linear infinite"></div>'
+          + '<div style="font-size:21px;font-weight:900;color:#5a2e44">Ads loading...</div>'
+          + '<div style="font-size:16px;font-weight:700;color:#8a6a7a;margin-top:4px">Please wait.</div></div>';
+        ['click', 'pointerdown', 'touchstart'].forEach(ev => d.addEventListener(ev, e => { e.stopPropagation(); e.preventDefault(); }, { passive: false }));
+        document.body.appendChild(d);
+      }
+      loadTimer = setTimeout(() => loading(false), 30000);   // never leave it up forever
+    } catch (e) {}
   }
   function quiet(on) { try { const A = window.FlowerFeverAudio; if (A) on ? A.pause() : A.resume(); } catch (e) {} }
   function alertNoAd() {
@@ -214,6 +240,7 @@
   const App = P('App');
   if (App) App.addListener('backButton', () => {
     // the game knows where "back" leads (close a window, leave a bed, open the menu during a level…); on the home screen the app goes to the background
+    if (document.getElementById('ffAdLoading')) return;   // an ad is loading: wait for it
     let handled = false;
     try { handled = !!(window.FlowerFeverBack && window.FlowerFeverBack()); } catch (e) { log('back', e); }
     if (!handled) App.minimizeApp();
