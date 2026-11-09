@@ -906,6 +906,8 @@ canvas#board{border-radius:0!important}
 #llOk[disabled]{opacity:.5}
 .llprice{font:800 15px/1.3 var(--display);color:#3d8a2e;margin:6px 0 2px}.llprice small{font:700 12px/1.3 var(--body);color:#9a7a5a}.llprice svg{width:18px;height:18px;vertical-align:-3px}
 .farm .fstats .fxpst b{font-size:15px;white-space:nowrap}
+.farm .flv{position:relative}.farm .flvi{position:absolute;right:8px;top:5px;width:18px;height:18px;border-radius:50%;background:#3fae4a;color:#fff;font:900 12px/18px var(--display);font-style:normal;text-align:center}
+.farm .fxphow{font-weight:800;color:#5a2e44;margin-top:10px}.farm .fxplist{list-style:none;padding:0;margin:6px 0 10px;text-align:left}.farm .fxplist li{background:#fff;border-radius:12px;padding:9px 12px;margin:6px 0;font:700 16px/1.2 var(--body);color:#5a3a22}
 /* voice picker */
 .voice-choice{border:0;margin:0 0 14px;padding:12px;background:#fff;border-radius:14px;box-shadow:inset 0 -2px 0 #f3d6e2}
 .voice-choice legend{float:left;width:100%;font:800 16px/1.2 var(--display);color:var(--ink);margin-bottom:9px}
@@ -3491,7 +3493,7 @@ function showWin() {
   const prevBest = save.best[levelIdx] || 0, newBest = prevBest > 0 && score > prevBest;
   save.best[levelIdx] = Math.max(prevBest, score);
   // flower coins: first win 5 + 2 per star, replays 2; water only for 3 stars. A rewarded ad doubles the coins.
-  const fcGain = wasCh ? 0 : firstWin ? 5 + 2 * st : 2, wGain = !wasCh && st === 3 ? 1 : 0; if (fcGain) farmReward(fcGain, wGain);
+  const fcGain = wasCh ? 0 : firstWin ? 5 + 2 * st : 2, wGain = !wasCh && st === 3 ? 1 : 0; if (fcGain) farmReward(fcGain, wGain); if (firstWin) { farm().xp += 1; persist(); }   // +1 Garden XP for every new puzzle level won
   let fcDoubled = false;
   persist(); updateHud();
   confetti();
@@ -4003,16 +4005,16 @@ const HOUSES = [["h1", "Straw Hut", 1, 0, 367, 379], ["h2", "Log Cabin", 2, 150,
 
 function farm() {
   const f = save.farm || (save.farm = {});
-  if (f.coins == null) { f.coins = 50; f.water = 3; f.xp = 0; f.house = "h1"; f.houses = ["h1"]; f.beds = [{ open: 1 }]; }
+  if (f.coins == null) { f.coins = 150; f.water = 3; f.xp = 0; f.house = "h1"; f.houses = ["h1"]; f.beds = [{ open: 1 }]; }
   if (!HOUSES.some(h => h[0] === f.house)) { f.house = "h1"; f.houses = ["h1"]; }   // older saves: roof colors became real houses
   BEDS.forEach((b, i) => { const s = f.beds[i] || (f.beds[i] = { open: 0 }); if (!s.plots) s.plots = Array(9).fill(null);
     if (s.types) { s.plots.forEach((p, j) => { if (p && !p.b) p.b = s.types[j] + "0"; }); delete s.types; }   /* older saves: one fixed flower per plot */ });
   return f;
 }
-function farmLevel(xp) { let lv = 1, need = 25; while (xp >= need) { xp -= need; lv++; need = 25 * lv; } return { lv, xp, need }; }
+function farmLevel(xp) { let lv = 1, need = 15; while (xp >= need) { xp -= need; lv++; need = 15 * lv; } return { lv, xp, need }; }
 const PLANT_XP = { Common: 1, Uncommon: 2, Rare: 4, Epic: 6, Legendary: 10 };   // planting: rarer seeds give more
 const sellXP = sd => Math.ceil(sd.xp / 2);   // selling gives half of the bloom XP
-const buyXP = price => Math.floor(price / 100);   // houses, pets, beds: 1 XP per 100 coins
+const buyXP = price => Math.ceil(price / 100);   // houses, pets, beds: 1 XP per 100 coins (rounded up)
 function farmReward(coins, water) { const f = farm(); f.coins += coins; f.water += water || 0; persist(); }
 const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`; };
 function plotState(p) { if (!p) return "empty"; const left = p.at + p.ms - Date.now(); return left <= 0 ? "ready" : (1 - left / p.ms) < .5 ? "sprout" : "bud"; }
@@ -4031,7 +4033,7 @@ const PET_SVG = {
   bunny: `<svg viewBox="-20 -20 40 40"><ellipse cx="-3" cy="-14" rx="2.8" ry="8" fill="#fff" stroke="#d8c8c8" transform="rotate(-12 -3 -6)"/><ellipse cx="3" cy="-14" rx="2.8" ry="8" fill="#fff" stroke="#d8c8c8" transform="rotate(14 3 -6)"/><ellipse cx="3" cy="-14" rx="1.2" ry="5.4" fill="#ffc0cc" transform="rotate(14 3 -6)"/><ellipse cx="-4" cy="8" rx="12" ry="9" fill="#fff" stroke="#d8c8c8"/><circle cx="-15" cy="6" r="3.6" fill="#fff" stroke="#d8c8c8"/><circle cx="4" cy="-3" r="7.4" fill="#fff" stroke="#d8c8c8"/><circle cx="7" cy="-4" r="1.4" fill="#2a1a20"/><circle cx="10.6" cy="-1.4" r="1.2" fill="#ff8aa0"/><ellipse cx="2" cy="16" rx="4" ry="2" fill="#f2e6e6"/></svg>`
 };
 const PETS = [   // id, name, Garden Level, price, max owned, what it does, kind of moving
-  ["bee", "Honeybee", 1, 240, 3, "+5% coins from every flower you pick", "fly"],
+  ["bee", "Honeybee", 1, 120, 3, "+5% coins from every flower you pick", "fly"],
   ["monarch", "Monarch butterfly", 2, 400, 2, "Flowers grow 5% faster", "flutter"],
   ["ladybug", "Ladybug", 3, 150, 2, "Crawls happily around the garden", "walk"],
   ["bluefly", "Blue butterfly", 5, 700, 2, "Flowers grow 5% faster", "flutter"],
@@ -4044,7 +4046,7 @@ const PETS = [   // id, name, Garden Level, price, max owned, what it does, kind
 const petSvg = id => id === "monarch" ? PET_SVG.monarch(["#f68a1e", "#f2b23a"]) : id === "bluefly" ? PET_SVG.monarch(["#3f8ee8", "#8cc6ff"]) : PET_SVG[id];
 const PET_SIZE = { bee: 7.5, monarch: 9, bluefly: 9, ladybug: 5, dragonfly: 11, firefly: 5, songbird: 10, hummingbird: 9, bunny: 12 };
 const petCount = (f, id) => (f.pets && f.pets[id]) || 0;
-const petPrice = (p, n) => Math.round(p[3] * (1 + n * .5) / 10) * 10;
+const petPrice = (p, n) => Math.round(p[3] * (1 + n * .5) / 10) * 10;   // each extra one costs half more (bee: 120, 180, 240)
 const beeBonus = f => 1 + .05 * petCount(f, "bee");
 const growMul = f => 1 - .05 * (petCount(f, "monarch") + petCount(f, "bluefly"));
 let gardenOpen = null;
@@ -4063,7 +4065,7 @@ function showMyGarden(onClose, plantCh) {
   const el = document.createElement("div"); el.id = "gardenView"; el.className = "farm"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "My Garden");
   el.innerHTML = `<div class="gv">
     <div class="fbar"><button class="fchip fhomeb" aria-label="Home"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg></button><button class="fchip fcbuy" aria-label="Flower coins: tap to exchange">${FC_SVG}<b class="fcN"></b><i>+</i></button><div class="fchip" aria-label="Water">💧<b class="fwN"></b></div>
-      <button class="flv" aria-label="Garden level: tap for help"><span class="flvT"></span><i><u></u></i></button></div>
+      <button class="flv" aria-label="Garden level: tap to see how to earn XP"><span class="flvT"></span><em class="flvi">?</em><i><u></u></i></button></div>
     <div class="fwrap"><div class="fstage"></div></div>
     <p class="gintro fhint"></p>
     <div class="fbtns"></div>
@@ -4169,8 +4171,10 @@ function showMyGarden(onClose, plantCh) {
     fl.style.left = (r.left + r.width / 2) + "px"; fl.style.top = (r.top + r.height / 3) + "px"; el.appendChild(fl); setTimeout(() => fl.remove(), 1300);
   }
   function gainXP(n) {   // every way of earning Garden XP comes through here, so a level-up is never missed
-    if (!n) return; const before = farmLevel(f.xp).lv; f.xp += n; persist(); bar();
-    const L = farmLevel(f.xp); if (L.lv > before) setTimeout(() => { sfx("win"); const nb = BEDS.find(b => b.lv === L.lv), nn = SEED_IDS.filter(k => SEEDS[k].lv > before && SEEDS[k].lv <= L.lv).map(k => SEEDS[k].n), nh = HOUSES.filter(h => h[2] > before && h[2] <= L.lv);
+    if (!n) return; const before = Math.min(farmLevel(f.xp).lv, f.lvSeen || farmLevel(f.xp).lv); f.xp += n; persist(); bar(); levelUp(before);
+  }
+  function levelUp(before) {   // also shows level-ups earned outside the garden (from puzzle wins)
+    const L = farmLevel(f.xp); if (L.lv <= before) { f.lvSeen = L.lv; return; } f.lvSeen = L.lv; persist(); setTimeout(() => { sfx("win"); const nb = BEDS.find(b => b.lv === L.lv), nn = SEED_IDS.filter(k => SEEDS[k].lv > before && SEEDS[k].lv <= L.lv).map(k => SEEDS[k].n), nh = HOUSES.filter(h => h[2] > before && h[2] <= L.lv);
         sheetShow(`<h3>🎉 Garden Level ${L.lv}!</h3><p>Your garden is growing.</p>${nn.length ? `<p>🌱 New seeds: <b>${nn.join(", ")}</b></p>` : ""}${nb ? `<p>🔓 You can now open the <b>${nb.n}</b>.</p>` : ""}${nh.length ? `<p>🏠 New house: <b>${nh.map(h => h[1]).join(", ")}</b></p>` : ""}<p>Gift: 💧 +2 water</p><div class="btns"><button class="btn" data-x>Lovely!</button></div>`); f.water += 2; persist(); bar(); }, 700);
   }
   function tapPlot(i, btn) {
@@ -4294,7 +4298,10 @@ function showMyGarden(onClose, plantCh) {
   }
   el.querySelector(".fcbuy").onclick = exchange;
   el.querySelector(".flv").onclick = () => { const L = farmLevel(f.xp);
-    sheetShow(`<h3>🌼 Garden Level ${L.lv}</h3><p>Earn Garden XP by planting 🌱 (rarer seeds give more), watering 💧, when a flower blooms 🌸 (longer flowers give more), selling 🪙, and buying houses, pets and beds 🛍. Fill the bar to reach the next Garden Level.</p><p><b>${L.xp} / ${L.need} XP</b> to Level ${L.lv + 1}</p><p>Higher levels unlock:<br>🌱 new flower seeds (${SEED_IDS.length} kinds in all)<br>🌷 Left bed at Level 3 · Right bed at Level 6<br>🏠 grander houses (${HOUSES.length} in all)</p><div class="btns"><button class="btn" data-x>Got it</button></div>`); };
+    sheetShow(`<h3>🌼 Garden Level ${L.lv}</h3><p><b>${L.xp} / ${L.need} XP</b> to Level ${L.lv + 1}</p>
+      <p class="fxphow">How to earn Garden XP:</p>
+      <ul class="fxplist"><li>🌱 Plant seeds</li><li>💧 Water your plants</li><li>🌸 Let flowers bloom</li><li>🪙 Sell flowers</li><li>🛍 Buy houses, garden visitors and beds</li><li>🧩 Win new puzzle levels</li></ul>
+      <p>Higher levels unlock new seeds, flower beds and grander houses.</p><div class="btns"><button class="btn" data-x>Got it</button></div>`); };
   const tick = setInterval(() => {   // light update: only redraw when a plant changes stage, otherwise just the clocks
     if (!alive) return; bar(); keepMusic();
     const cells = stage.querySelectorAll(".fplot"); let changed = false;
@@ -4305,9 +4312,10 @@ function showMyGarden(onClose, plantCh) {
   const close = () => { alive = false; clearInterval(tick); cancelAnimationFrame(petRaf); el.remove(); gardenOpen = null; onClose(); };
   el.querySelector(".fhomeb").onclick = () => { alive = false; clearInterval(tick); cancelAnimationFrame(petRaf); el.remove(); if (typeof mapOpen !== "undefined") mapOpen = null; gardenOpen = null; leaveToHome(); };
   keepMusic(); petRaf = requestAnimationFrame(petLoop);
+  if (!f.lvSeen) { f.lvSeen = farmLevel(f.xp).lv; persist(); } else if (farmLevel(f.xp).lv > f.lvSeen) levelUp(f.lvSeen);
   gardenOpen = fit; if (window.ResizeObserver) new ResizeObserver(fit).observe(el.querySelector(".fwrap"));
   render();
-  if (!f.seen) { f.seen = 1; persist(); sheetShow(`<h3>🌷 Welcome to your garden!</h3><p>Win levels to earn ${FC_SVG} <b>flower coins</b> and 💧 water.</p><p>Tap a flower bed, tap empty soil and choose a flower. Wait for it to bloom, then pick it for more coins. Rare flowers take longer but earn more.</p><p>Here are ${FC_SVG}<b>50</b> to start!</p><div class="btns"><button class="btn" data-x>Let's plant!</button></div>`); }
+  if (!f.seen) { f.seen = 1; persist(); sheetShow(`<h3>🌷 Welcome to your garden!</h3><p>Win levels to earn ${FC_SVG} <b>flower coins</b> and 💧 water.</p><p>Tap a flower bed, tap empty soil and choose a flower. Wait for it to bloom, then pick it for more coins. Rare flowers take longer but earn more.</p><p>Here are ${FC_SVG}<b>150</b> to start!</p><div class="btns"><button class="btn" data-x>Let's plant!</button></div>`); }
   else if (plantCh != null) sheetShow(`<h3>🌷 Chapter complete!</h3><p>Your garden gift is here: ${FC_SVG}<b>+100</b> and 💧<b>+3</b></p><div class="btns"><button class="btn" data-x>Thank you!</button></div>`);
 }
 addEventListener("resize", () => { if (gardenOpen) gardenOpen(); });
