@@ -199,6 +199,17 @@
     };
   }
 
+  /* ---------- Vibration (Capacitor Haptics; the WebView's own vibrate does not work in the app) ---------- */
+  const H = P('Haptics');
+  if (H) {
+    // phones barely feel pulses under ~20 ms, so short ones are lengthened a little
+    const buzz = d => { try { H.vibrate({ duration: Math.max(20, d) }); } catch (e) {} };
+    window.FlowerFeverHaptics = (kind, ms) => {
+      if (Array.isArray(ms)) { let t = 0; ms.forEach((d, i) => { if (i % 2 === 0) setTimeout(() => buzz(d), t); t += d; }); }
+      else buzz(ms || 15);
+    };
+  }
+
   /* ---------- Android back button: close the open window, or ask before leaving ---------- */
   const App = P('App');
   if (App) App.addListener('backButton', () => {

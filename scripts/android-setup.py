@@ -26,7 +26,7 @@ def manifest(s):
         s = re.sub(r"(<application\b[^>]*>)", lambda m: m.group(1) +
                    '\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="'
                    + ADMOB_APP_ID + '"/>', s, count=1)
-    for perm in ("android.permission.POST_NOTIFICATIONS", "com.android.vending.BILLING"):
+    for perm in ("android.permission.POST_NOTIFICATIONS", "com.android.vending.BILLING", "android.permission.VIBRATE"):
         if perm not in s:
             s = s.replace("</manifest>", f'    <uses-permission android:name="{perm}"/>\n</manifest>', 1)
     return s
