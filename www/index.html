@@ -567,7 +567,7 @@ canvas#board{border-radius:0!important}
 
 /* ===== Home (matches the approved mockup; 1 design px = --u) ===== */
 #homeView{--u:min(calc(100vw / 911), calc(100vh / 1770), .56px);background:#fdf6eb!important;overflow:hidden}
-#homeView .h3{width:calc(911 * var(--u));margin:0 auto;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:env(safe-area-inset-top);box-sizing:border-box;font-family:"Baloo 2",var(--display);color:#14301c}
+#homeView .h3{width:calc(911 * var(--u));margin:0 auto;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:env(safe-area-inset-top);box-sizing:border-box;font-family:"Baloo 2",var(--display);color:#14301c}
 #homeView button{font-family:inherit;cursor:pointer}
 .h3top{display:flex;align-items:center;justify-content:center;height:calc(150 * var(--u));gap:calc(4 * var(--u))}
 .h3bq{width:calc(156 * var(--u));height:auto}
@@ -583,7 +583,7 @@ canvas#board{border-radius:0!important}
 .h3gem .gem{width:calc(60 * var(--u))!important;height:calc(60 * var(--u))!important}
 .h3gem b{font-size:calc(46 * var(--u));font-weight:800}
 .h3gem i{font-style:normal;width:calc(56 * var(--u));height:calc(56 * var(--u));border-radius:50%;background:#2f7d32;color:#fff;display:grid;place-items:center;font:800 calc(46 * var(--u))/1 var(--body)}
-.h3map{position:relative;width:calc(875 * var(--u));height:calc(532 * var(--u));margin-top:calc(21 * var(--u));border-radius:calc(46 * var(--u));overflow:hidden;box-shadow:0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(40,60,20,.15)}
+.h3map{position:relative;width:calc(875 * var(--u));height:calc(532 * var(--u) + var(--mx, 0px));margin-top:calc(21 * var(--u));border-radius:calc(46 * var(--u));overflow:hidden;box-shadow:0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(40,60,20,.15)}
 .h3map canvas{position:absolute;inset:0;width:100%;height:100%}
 .h3labels{position:absolute;inset:0;pointer-events:none}
 .h3lab{position:absolute;transform:translate(-50%,-50%);background:#fdf8e6;border:calc(3 * var(--u)) solid #e6dfc0;border-radius:calc(40 * var(--u));padding:calc(6 * var(--u)) calc(22 * var(--u));font-weight:800;font-size:calc(34 * var(--u));line-height:1.05;text-align:center;color:#1a2a14;max-width:calc(250 * var(--u));box-shadow:0 calc(3 * var(--u)) calc(6 * var(--u)) rgba(0,0,0,.15)}
@@ -793,7 +793,9 @@ canvas#board{border-radius:0!important}
 .farm .flvT{display:block;font:800 13px/1 var(--display);color:#3d7a2e;margin-bottom:4px}
 .farm .flv i{display:block;height:9px;border-radius:9px;background:#e4efd9;overflow:hidden}
 .farm .flv u{display:block;height:100%;background:linear-gradient(90deg,#8fd46a,#3fa34a);border-radius:9px;transition:width .4s}
-.farm .fwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.farm .fwrap{flex:none;min-height:0;display:flex;align-items:flex-start;justify-content:center}
+.farm .fad{margin-top:auto;padding-top:6px}
+.farm .flvT{font-size:clamp(10px,3.1vw,13px)!important}
 .farm .fstage{position:relative;background-size:100% 100%;border-radius:18px;overflow:hidden;box-shadow:0 0 0 3px #fff,0 8px 20px rgba(60,40,20,.2)}
 .farm .fhouse{position:absolute;pointer-events:none}
 .farm .fhousebtn,.farm .fbedbtn{position:absolute;border:0;background:none;cursor:pointer;padding:0;border-radius:12px}
@@ -4135,6 +4137,7 @@ function showMyGarden(onClose, plantCh) {
     <div class="fwrap"><div class="fstage"></div></div>
     <p class="gintro fhint"></p>
     <div class="fbtns"></div>
+    <div class="adspace fad" aria-label="Advertisement"${adsAllowed() ? "" : " hidden"}><div class="adph">Ad banner · 320 × 50</div></div>
     <div class="fsheet" hidden><div class="fcard"></div></div></div>`;
   document.body.appendChild(el);
   const stage = el.querySelector(".fstage"), hint = el.querySelector(".fhint"), btns = el.querySelector(".fbtns"), sheet = el.querySelector(".fsheet"), card = el.querySelector(".fcard");
@@ -4146,10 +4149,14 @@ function showMyGarden(onClose, plantCh) {
   }
   function bar() {
     el.querySelector(".fcN").textContent = f.coins; el.querySelector(".fwN").textContent = f.water;
-    const L = farmLevel(f.xp); el.querySelector(".flvT").textContent = `Garden Level ${L.lv}`; el.querySelector(".flv u").style.width = (L.xp / L.need * 100) + "%";
+    const L = farmLevel(f.xp); el.querySelector(".flvT").textContent = `Garden Lv ${L.lv}`; el.querySelector(".flv u").style.width = (L.xp / L.need * 100) + "%";
   }
   function fit() {   // keep the picture's shape, as big as the space allows
-    const w = el.querySelector(".fwrap"), ar = view < 0 ? OV_W / OV_H : BD_W / BD_H, W = w.clientWidth, H = w.clientHeight;
+    const w = el.querySelector(".fwrap"), gv = el.querySelector(".gv"), ar = view < 0 ? OV_W / OV_H : BD_W / BD_H, W = w.clientWidth;
+    // the picture takes the height left by the bar, hint, buttons and banner, and everything sits right under it (no gap)
+    const cs = getComputedStyle(gv), used = [...gv.children].filter(c => c !== w && !c.classList.contains("fsheet") && !c.hidden)
+      .reduce((a, c) => { const m = getComputedStyle(c); return a + c.offsetHeight + (c.classList.contains("fad") ? 0 : parseFloat(m.marginTop) + parseFloat(m.marginBottom)); }, 0);
+    const H = Math.max(120, gv.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - used - 4);
     const sw = Math.min(W, H * ar); stage.style.width = sw + "px"; stage.style.height = sw / ar + "px";
   }
   function cellHTML(bi, i, big) {
@@ -4516,6 +4523,13 @@ function showHome() {
   const NG = PLAN_GARDENS.length;
   const paint = () => {
     const sc = el.querySelector(".h3scroll"), vw = sc.clientWidth; if (!vw) return;
+    { // a tall phone: the map takes the spare height (bigger garden art), the rest of the page stays close to the top
+      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
+      map.style.setProperty("--mx", "0px");
+      const base = map.clientHeight, last = h3.lastElementChild, spare = innerHeight - (last ? last.getBoundingClientRect().bottom : innerHeight) - 16;
+      const mx = Math.max(0, Math.min(spare, base * .7)); map.style.setProperty("--mx", mx + "px");
+      strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
+    }
     lab.innerHTML = PLAN_GARDENS.map(([name], g2) => { const [lx, ly] = PANO_POS[g2];
       return `<span class="h3lab${g2 === gi ? " cur" : ""}${g2 > gi ? " later" : ""}" style="left:${lx}%;top:${ly}%">${g2 < gi ? "✓ " : ""}${name}</span>`; }).join("")
       + (() => { const [, , px, py] = PANO_POS[gi];
@@ -4750,7 +4764,7 @@ let bannerOn = null, booted = false;
 setTimeout(() => { syncKey(); cloudBackup(); }, 3000);
 document.addEventListener("visibilitychange", () => { if (document.hidden) cloudBackup(); });
 function syncBanner() {
-  const want = adsAllowed() && !homeOpen && !mapOpen && !gardenOpen && booted;
+  const want = adsAllowed() && !homeOpen && !mapOpen && (booted || !!gardenOpen);
   if (want === bannerOn) return; bannerOn = want;
   const el = document.getElementById("adBanner"); if (el) el.classList.toggle("off", !want);
   const A = window.FlowerFeverAds; try { if (A) { if (want && A.showBanner) A.showBanner(); if (!want && A.hideBanner) A.hideBanner(); } } catch (e) {}
