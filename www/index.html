@@ -165,7 +165,7 @@ canvas#board{display:block;touch-action:none;border-radius:14px}
 /* Cascade celebration */
 #rays{position:absolute;left:50%;top:50%;width:170vmax;height:170vmax;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity .5s;
   background:repeating-conic-gradient(from 0deg,rgba(255,244,190,.75) 0 6deg,rgba(255,255,255,0) 6deg 16deg);
-  -webkit-mask:radial-gradient(circle,#000 0 14%,transparent 48%);mask:radial-gradient(circle,#000 0 14%,transparent 48%);animation:rays 14s linear infinite}
+  -webkit-mask:radial-gradient(circle,#000 0 14%,transparent 48%);mask:radial-gradient(circle,#000 0 14%,transparent 48%);animation:rays 14s linear infinite;will-change:transform;contain:strict}
 @keyframes rays{to{transform:translate(-50%,-50%) rotate(360deg)}}
 .frame{transition:box-shadow .35s}
 .frame.fever2{box-shadow:inset 0 0 0 2px #0b5a5c,inset 0 0 26px rgba(0,0,0,.35),0 5px 0 #1f6b68,0 0 26px 6px rgba(255,140,190,.75)}
@@ -548,9 +548,9 @@ canvas#board{display:block;touch-action:none;border-radius:14px}
 .frame{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;border-radius:0!important}
 .frame::after{display:none!important}
 .frame.fever2,.frame.fever3,.frame.fever4{box-shadow:none!important;animation:none!important}
-.frame.fever2 canvas{filter:drop-shadow(0 0 10px rgba(255,140,190,.8))}
-.frame.fever3 canvas{filter:drop-shadow(0 0 14px rgba(255,205,70,.9))}
-.frame.fever4 canvas{filter:drop-shadow(0 0 18px rgba(255,120,190,.95))}
+/* fever glow: a soft halo behind the board (a filter on the game canvas itself redrew every frame and made phones lag) */
+.frame{position:relative}.frame::before{content:"";position:absolute;inset:-14px;border-radius:30px;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(closest-side,rgba(255,150,200,.75),rgba(255,150,200,0));z-index:-1}
+.frame.fever2::before{opacity:.7}.frame.fever3::before{opacity:.85;background:radial-gradient(closest-side,rgba(255,210,80,.8),rgba(255,210,80,0))}.frame.fever4::before{opacity:1}
 canvas#board{border-radius:0!important}
 .mn .mstars{position:absolute;left:50%;top:calc(100% + 4px);transform:translateX(-50%);display:flex;gap:1px;padding:2px 5px 1px;border-radius:10px;background:rgba(255,255,255,.95);box-shadow:0 2px 4px rgba(0,0,0,.2);white-space:nowrap}
 .mn .mstars i{font:900 13px/1 var(--body);font-style:normal;color:#d9cfd5}
@@ -1211,8 +1211,9 @@ const $ = s => document.querySelector(s);
 const T = () => performance.now();
 let fastFwd = false;   // end-of-level fast-forward (only while the Flower Shower runs)
 let showerTurbo = false;   // Skip: the shower still plays out in full (same score), just very fast behind a cover
-let gameT = 0;   // game clock: advances with the animation (and with skipped waits), so a skipped or fast-forwarded shower ends the same way
-const sleep = ms => showerTurbo ? (gameT += ms, Promise.resolve()) : new Promise(r => setTimeout(r, fastFwd ? ms / 3 : ms));
+let gameOff = 0;   // game clock = real time, plus the waits a skipped shower jumps over (a slow phone no longer makes the shower longer)
+const gameNow = () => T() + gameOff;
+const sleep = ms => showerTurbo ? (gameOff += ms, Promise.resolve()) : new Promise(r => setTimeout(r, fastFwd ? ms / 3 : ms));
 const rnd = n => Math.floor(Math.random() * n);
 const inB = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
 const TAU = Math.PI * 2;
@@ -2122,7 +2123,7 @@ function sizeParty() { party.width = Math.round(innerWidth * DPR); party.height 
 function celebrate(n) {
   fever = n; clearTimeout(feverOff);
   const fr = $("#frame"); fr.classList.remove("fever2", "fever3", "fever4"); fr.classList.add("fever" + Math.min(4, n));
-  $("#rays").style.opacity = Math.min(1, Math.max(0, (n - 2) * .4));
+  $("#rays").style.opacity = quality < 2 ? 0 : Math.min(1, Math.max(0, (n - 2) * .4));
   const nn = Math.min(n, 9), b = fr.getBoundingClientRect(), add = Math.min(6, 1 + nn), grow = Math.min(1.35, 1 + (nn - 2) * .06);
   // static blooms around the board edge are switched off for now
   for (let i = 0; i < 0 && add && blooms.length < 44; i++) {
@@ -2981,7 +2982,7 @@ async function resolve(swapCells) {
     // and after ~18 s new flowers avoid making matches so the party winds down on its own
     if (inShower && showerSkip) break;
     if (pendingBees.length) continue;
-    if (inShower && gameT - showerT0 > 10000 + (showerGen - 1) * 3000) { luckyRefill = 0; if (gameT - showerT0 > 13000 + (showerGen - 1) * 4000) showerCalm = true; }
+    if (inShower && gameNow() - showerT0 > 6000 + (showerGen - 1) * 1500) { luckyRefill = 0; if (gameNow() - showerT0 > 8000 + (showerGen - 1) * 2000) showerCalm = true; }
     if (!inShower) {   // a power-up that was hit lights up, waits for the flowers to land, then goes off (0.25 s apart, never all at once)
       if (T() - rt0 > 15000) {   // a very long chain: whatever is still lit goes off together so the move never drags on
         const rest = []; eachPiece(p => { if (p.later) { p.later = false; if (!p.fired && !p.frozen && p.type !== "normal") rest.push([p.r, p.c]); } });
@@ -3002,7 +3003,7 @@ async function resolve(swapCells) {
       else if (ground[nr][nc] > 0) { const k = nr * COLS + nc; if (!hitByThis.has(k)) { hitByThis.add(k); soilHits.set(k, (soilHits.get(k) || 0) + 1); } }   // one match = 1 hit, however many of its flowers touch the soil
     } }
     for (const g of groups) {
-      const type = inShower && gameT - showerT0 > 15000 + (showerGen - 1) * 5000 ? null : decide(g);   // late in a long Flower Shower, matches stop making new power-ups so it winds down
+      const type = inShower && gameNow() - showerT0 > 9000 + (showerGen - 1) * 2000 ? null : decide(g);   // late in a long Flower Shower, matches stop making new power-ups so it winds down
       const spawn = type ? pickSpawn(g, type, swapCells) : null;
       let sr = 0, sc = 0;
       for (const cl of g.cells) { sr += cl[0]; sc += cl[1]; if (!spawn || cl[0] !== spawn[0] || cl[1] !== spawn[1]) toBlast.push(cl); }
@@ -3158,12 +3159,15 @@ async function popAllSpecials() {   // every power-up on the board goes off — 
     for (const a of sp) { for (const [dr, dc] of [[0, 1], [1, 0]]) { const b = grid[a.r + dr] && grid[a.r + dr][a.c + dc]; if (b && b.type !== "normal" && !b.frozen && !b.fired) { pair = [a, b]; break; } } if (pair) break; }
     if (pair) { const [a, b] = pair; await doCombo(a, b, [b.r, b.c]); await resolve(null); continue; }
     // a very long shower wraps up: whatever is left goes off together
-    if (gameT - showerT0 > 45000) { await blast(sp.map(q => [q.r, q.c]), true); await resolve(null); continue; }   // safety net only
+    if (gameNow() - showerT0 > 30000) { await blast(sp.map(q => [q.r, q.c]), true); await resolve(null); continue; }   // safety net only
     // lit-up ones (already hit) go first, in the order they were hit
     // then the oldest first (so power-ups low on the board never get left waiting behind new ones)
     sp.sort((a, b) => (a.marked || 1e15) - (b.marked || 1e15) || (a.pop || 0) - (b.pop || 0));
-    const p = sp[0]; p.marked = 0;
-    await blast([[p.r, p.c]], false, true);
+    // a big pile (they gather at the bottom as flowers fall): up to 4 go off back to back before the flowers fall, so the shower keeps moving
+    const n = sp.length >= 12 ? 4 : sp.length >= 6 ? 2 : 1, pick = [];
+    for (const q of sp) { if (pick.length >= n) break; if (pick.every(o => Math.abs(o.r - q.r) + Math.abs(o.c - q.c) > 1)) pick.push(q); }
+    pick.forEach(q => { q.marked = 0; });
+    await blast(pick.map(q => [q.r, q.c]), false, true);
     await resolve(null);              // gravity + any matches before the next power-up fires
     await sleep(60);
   }
@@ -3172,7 +3176,7 @@ async function popAllSpecials() {   // every power-up on the board goes off — 
 async function flowerShower() {
   // a fast win earns a more generous shower: under 1/3 of the moves used = x3 cascades, otherwise as usual
   { const allowed = movesUsed + moves, r = allowed ? movesUsed / allowed : 1; showerGen = r < 1 / 3 ? 3 : 1; }
-  inShower = true; showerT0 = gameT; showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
+  inShower = true; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
   setTimeout(() => { if (inShower) { skipBtn.hidden = false; ffBtn.hidden = false; } }, 600);
   // the more moves left, the bigger the party
   const left = moves; showerHeat = Math.min(6, 1 + Math.floor(left / 3));
@@ -4801,7 +4805,6 @@ addEventListener("resize", () => { layout(); const [nx, ny] = (L && L.nudge) || 
 const BEE_MS = 1000, G = .00011, VMAX = .03, CHARGE_MS = 260, chargingNow = [];
 let last = T();
 function update(t, dt) {
-  gameT += dt;
   let moving = false;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const p = grid[r] && grid[r][c]; if (!p) continue;
@@ -5113,7 +5116,7 @@ try { const v = localStorage.getItem("petalpop.quality"), q = v === null ? 2 : +
 function frame(t) {
   watchFps(t - last);
   const dt = Math.min(40, t - last); last = t;
-  if (showerTurbo) for (let k = 0; k < 30; k++) update(t, 40); else update(t, fastFwd ? dt * 2.5 : dt); draw(t); drawParty(t, dt); syncBanner();
+  if (showerTurbo) for (let k = 0; k < 30; k++) { gameOff += 40; update(t, 40); } else update(t, fastFwd ? dt * 2.5 : dt); draw(t); drawParty(t, dt); syncBanner();
   if (fever >= 2 && Math.random() < fever * .04 * qf()) { const r = rnd(ROWS), c = rnd(COLS); if (mask[r][c] === 1) sparkleAt(r, c, 3); }
   requestAnimationFrame(frame);
 }
