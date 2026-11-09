@@ -656,8 +656,11 @@ canvas#board{border-radius:0!important}
 .h3fl:nth-child(2n){animation-delay:-2.2s}.h3fl:nth-child(3n){animation-duration:5.3s}
 @keyframes h3sway{from{transform:translateX(-50%) rotate(0deg)}to{transform:translateX(-50%) rotate(360deg)}}
 .h3name{color:#fff0fa!important;-webkit-text-stroke:0.034em #ff3fae!important;paint-order:stroke fill!important;text-shadow:0 0 0.041em #fff,0 0 0.081em #ff3fae,0 0 0.135em #ff3fae,0.068em 0 0 #5a0718,-0.068em 0 0 #5a0718,0 0.068em 0 #5a0718,0 -0.068em 0 #5a0718,0.054em 0.054em 0 #5a0718,-0.054em 0.054em 0 #5a0718,0.054em -0.054em 0 #5a0718,-0.054em -0.054em 0 #5a0718,0.041em 0.081em 0 #5a0718,-0.041em 0.081em 0 #5a0718,0.081em 0.041em 0 #5a0718,-0.081em 0.041em 0 #5a0718,0 0.095em 0 #5a0718,0 0 0.14em rgba(255,79,191,.75),0 0 0.26em rgba(255,46,166,.4)!important;font-size:calc(128 * var(--u))!important}
-#homeView{--u:min(calc(100vw / 911), calc(100vh / 1830), .56px)!important}
-#homeView.wk{--u:min(calc(100vw / 911), calc(100vh / 1990), .56px)!important}
+#homeView{--u:min(calc(100vw / 911), calc((100vh - var(--navb, 0px)) / 1780), .56px)!important}
+#homeView.wk{--u:min(calc(100vw / 911), calc((100vh - var(--navb, 0px)) / 1940), .56px)!important}
+/* home sits close to the top; in the Android app the bottom keeps clear of the phone's navigation buttons */
+.h3top{height:calc(180 * var(--u))!important;margin-bottom:calc(14 * var(--u))!important}
+#homeView .h3{padding-top:calc(env(safe-area-inset-top, 0px) * .5)!important;padding-bottom:var(--navb, 0px)!important}
 .h3week em{white-space:nowrap;font-size:.78em!important;padding-inline:.5em!important}
 .h3week>span{font-size:calc(48 * var(--u))!important}
 /* compact HUD: moves + lifelines side by side in one kit */
@@ -4530,7 +4533,7 @@ function showHome() {
     { // a tall phone: the map takes the spare height (bigger garden art), the rest of the page stays close to the top
       const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
       map.style.setProperty("--mx", "0px");
-      const base = map.clientHeight, last = h3.lastElementChild, spare = innerHeight - (last ? last.getBoundingClientRect().bottom : innerHeight) - 16;
+      const base = map.clientHeight, last = h3.lastElementChild, spare = innerHeight - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--navb")) || 0) - (last ? last.getBoundingClientRect().bottom : innerHeight) - 12;
       const mx = Math.max(0, Math.min(spare, base * .7)); map.style.setProperty("--mx", mx + "px");
       strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
     }
@@ -4655,6 +4658,7 @@ window.FlowerFeverBack = function () {
   // 5) on the home screen: let the app go to the background
   return false;
 };
+try { const C = window.Capacitor; if (C && C.isNativePlatform && C.isNativePlatform()) document.documentElement.style.setProperty("--navb", "48px"); } catch (e) {}
 let mapOpen = null;
 const MAP_SEAM = 56;
 function fitTitle(h) { let f = 34; h.style.fontSize = f + "px"; while (f > 16 && h.scrollWidth > h.clientWidth + 1) h.style.fontSize = --f + "px"; }
