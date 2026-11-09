@@ -4039,7 +4039,7 @@ function farm() {
     if (s.types) { s.plots.forEach((p, j) => { if (p && !p.b) p.b = s.types[j] + "0"; }); delete s.types; }   /* older saves: one fixed flower per plot */ });
   return f;
 }
-function farmLevel(xp) { let lv = 1, need = 15; while (xp >= need) { xp -= need; lv++; need = 15 * lv; } return { lv, xp, need }; }
+function farmLevel(xp) { let lv = 1, need = 15; while (xp >= need) { xp -= need; lv++; need = 10 + 5 * lv; } return { lv, xp, need }; }   // total XP: 15 → Lv2, 35 → Lv3, 60 → Lv4, 90 → Lv5 …
 const PLANT_XP = { Common: 1, Uncommon: 2, Rare: 4, Epic: 6, Legendary: 10 };   // planting: rarer seeds give more
 const sellXP = sd => Math.ceil(sd.xp / 2);   // selling gives half of the bloom XP
 const buyXP = price => Math.ceil(price / 100);   // houses, pets, beds: 1 XP per 100 coins (rounded up)
