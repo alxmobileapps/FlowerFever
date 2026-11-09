@@ -6,6 +6,15 @@
     "backgroundColor": "#fdf8f1"
   },
   "plugins": {
-    "LocalNotifications": { "smallIcon": "ic_stat_flower", "iconColor": "#E8467E" }
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_flower",
+      "iconColor": "#E8467E"
+    },
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": [
+        "google.com"
+      ]
+    }
   }
 }

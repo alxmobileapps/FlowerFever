@@ -936,6 +936,10 @@ canvas#board{border-radius:0!important}
 .farm .fcrit.glow[data-f="0"] img{filter:none}
 .farm .fpollen{position:absolute;width:4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#fff8b0,rgba(255,226,80,.6) 40%,rgba(255,226,80,0) 70%);pointer-events:none;z-index:6;animation:fpoll 1.2s ease-out forwards}
 @keyframes fpoll{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(2)}}
+.acctbox{display:flex;flex-direction:column;gap:6px;align-items:center;background:#fff;border-radius:16px;padding:12px 14px;margin:10px 0;box-shadow:inset 0 -2px 0 #f3d6e2;text-align:center}
+.acctbox b{font:800 16px/1.2 var(--display);color:#5a2e44}.acctbox span{font:600 14px/1.35 var(--body);color:#8a5e6e}.acctbox small{font:600 12px/1.3 var(--body);color:#a88a96}
+.btn.gsignin{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff!important;color:#3c4043!important;box-shadow:0 0 0 2px #dadce0,0 3px 0 #c8cacd!important;font-size:17px;width:100%}
+.acctbox .btn{margin-top:4px}
 /* voice picker */
 .voice-choice{border:0;margin:0 0 14px;padding:12px;background:#fff;border-radius:14px;box-shadow:inset 0 -2px 0 #f3d6e2}
 .voice-choice legend{float:left;width:100%;font:800 16px/1.2 var(--display);color:var(--ink);margin-bottom:9px}
@@ -1937,7 +1941,7 @@ let save = { unlocked: 1, stars: {}, boost: { shovel: 0, swap: 0, shuffle: 0 }, 
 try { const s = JSON.parse(localStorage.getItem("petalpop.v1")); if (s && s.boost) { save = s; if (!save.adOnly) { save.boost = { shovel: 0, swap: 0, shuffle: 0 }; save.adOnly = true; } } } catch (e) {}
 if (!save.plan) { save.plan = 1; save.unlocked = 1; save.stars = {}; save.fails = {}; save.rewarded = {}; try { localStorage.removeItem("petalpop.level"); } catch (e) {} }
 if (save.plan === 1) { save.plan = 2; save.fails = {}; }   // v2 plan: same level numbers, keep progress
-function persist() { save.savedAt = Date.now(); try { localStorage.setItem("petalpop.v1", JSON.stringify(save)); } catch (e) {} cloudSoon(); }
+function persist() { save.savedAt = Date.now(); try { localStorage.setItem("petalpop.v1", JSON.stringify(save)); } catch (e) {} cloudSoon(); acctSoon(); }
 /* ===== Cloud save (Firebase Firestore, same approach as AlphaBlast) =====
    Every player gets an 8-character backup code. Progress is backed up automatically to flowerfever_users/sync_<CODE>,
    and can be restored on any phone by typing the code in Settings. Paste the Flower Fever Firebase web config below to switch it on;
@@ -1994,6 +1998,44 @@ async function cloudRestore(code) {
     return "";
   } catch (e) { return "Couldn't reach the cloud. Please try again."; }
 }
+
+/* ===== Google sign-in (Android app): window.FlowerFeverAccount saves the whole game to the player's own Firestore document ===== */
+const ACCT = () => window.FlowerFeverAccount || null;
+let acctTimer = 0, acctBusy = false;
+function acctSoon() { const A = ACCT(); if (!A || !A.user) return; clearTimeout(acctTimer); acctTimer = setTimeout(acctSave, 5000); }
+async function acctSave() { const A = ACCT(); if (!A || !A.user) return false; const ok = await A.save(cloudCopy()); if (ok) { save.acctAt = Date.now(); try { localStorage.setItem("petalpop.v1", JSON.stringify(save)); } catch (e) {} } return ok; }
+// after signing in (or when the app opens signed in): bring the cloud copy in, keep the best of both, then save
+async function acctSync() {
+  const A = ACCT(); if (!A || !A.user || acctBusy) return false; acctBusy = true;
+  try {
+    const cloud = await A.load();
+    if (cloud) { const merged = mergeSaves(save, cloud); Object.keys(save).forEach(k => delete save[k]); Object.assign(save, merged); try { localStorage.setItem("petalpop.v1", JSON.stringify(save)); } catch (e) {} }
+    await acctSave(); track("account_sync", { had_cloud: cloud ? 1 : 0 });
+    return !!cloud;
+  } finally { acctBusy = false; }
+}
+async function acctSignIn(after) {
+  const A = ACCT(); if (!A) return;
+  show(`<div class="ribbon">Google account</div><h2>Signing in…</h2><p>Choose your Google account in the window that opens.</p>`, () => {});
+  try { await A.signIn(); } catch (e) { show(`<div class="ribbon">Google account</div><h2>Not signed in</h2><p>Signing in didn't finish. You can try again any time from Settings.</p><div class="btns"><button class="btn" id="aOk">OK</button></div>`, el => el.querySelector("#aOk").onclick = after); return; }
+  if (!A.user) { after(); return; }
+  const had = await acctSync(); track("sign_in", {});
+  show(`<div class="ribbon">Google account</div><h2>Welcome, ${(A.user.name || "friend").split(" ")[0]}! 🌷</h2><p>${had ? `Your progress is back: Level ${save.unlocked}, ${save.gems || 0} diamonds.` : "Your progress now saves to your Google account. Sign in on any phone to keep playing."}</p><div class="btns"><button class="btn" id="aOk">Lovely!</button></div>`,
+    el => el.querySelector("#aOk").onclick = () => { if (typeof updateHud === "function") updateHud(); after(); });
+}
+setTimeout(() => { const A = ACCT(); if (A) { if (A.user) acctSync(); A.onChange(u => { if (u) acctSync(); }); } }, 2500);
+document.addEventListener("visibilitychange", () => { if (document.hidden) acctSave(); });
+const acctBox = back => {
+  const A = ACCT(); if (!A) return "";
+  return A.user
+    ? `<div class="acctbox"><b>✅ Signed in with Google</b><span>${A.user.name || ""}${A.user.email ? `<br><small>${A.user.email}</small>` : ""}</span><small>${save.acctAt ? "Last saved " + new Date(save.acctAt).toLocaleString() : "Saving soon…"}</small><button class="btn alt" id="aOut">Sign out</button></div>`
+    : `<div class="acctbox"><b>☁ Save your progress</b><span>Sign in with Google to keep your levels, diamonds and garden safe, and play on any phone. (Optional)</span><button class="btn gsignin" id="aIn"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z"/></svg><span>Sign in with Google</span></button></div>`;
+};
+const acctWire = (el, again) => {
+  const i = el.querySelector("#aIn"); if (i) i.onclick = () => acctSignIn(again);
+  const o = el.querySelector("#aOut"); if (o) o.onclick = () => show(`<div class="ribbon">Google account</div><h2>Sign out?</h2><p>Your progress stays on this phone. It stops saving to your Google account until you sign in again.</p><div class="btns"><button class="btn" id="oYes">Sign out</button><button class="btn alt" id="oNo">Cancel</button></div>`,
+    e2 => { e2.querySelector("#oNo").onclick = again; e2.querySelector("#oYes").onclick = async () => { await acctSave(); await ACCT().signOut(); track("sign_out", {}); again(); }; });
+};
 
 function newPiece(color, type = "normal") {
   return { id: uid++, color, type, r: 0, c: 0, px: 0, py: 0, vy: 0, falling: false, tw: null, armed: false, fired: false, shield: false, radius: 1, pop: 0, land: 0, charge: 0 };
@@ -4504,8 +4546,8 @@ function showSettings(back) {
       <button class="voice-option" type="button" data-voice="male" aria-pressed="${voiceStyle === "male"}">👨 Male</button>
       <button class="voice-option" type="button" data-voice="female" aria-pressed="${voiceStyle === "female"}">👩 Female</button>
     </div><button type="button" id="sVoicePreview" ${soundOn ? "" : "disabled"}>${soundOn ? "▶ Preview voice" : "Turn sound on to preview"}</button></fieldset>
-    <div class="cloudbox"><b>☁ Cloud backup</b><span>Your backup code</span><code>${syncKey()}</code><small>${!FIREBASE_CONFIG ? "Cloud backup turns on in the app version." : save.cloudAt ? "Last saved " + new Date(save.cloudAt).toLocaleString() : "Saving soon…"}</small></div>
-    <div class="btns"><button class="btn" id="sDone">Done</button><button class="btn alt" id="sCloud">Restore from a backup code</button><button class="btn alt" id="sRestore">Restore purchases</button><button class="btn alt" id="sCred">Credits</button></div>`, el => {
+    ${ACCT() ? acctBox() : `<div class="cloudbox"><b>☁ Cloud backup</b><span>Your backup code</span><code>${syncKey()}</code><small>${!FIREBASE_CONFIG ? "Cloud backup turns on in the app version." : save.cloudAt ? "Last saved " + new Date(save.cloudAt).toLocaleString() : "Saving soon…"}</small></div>`}
+    <div class="btns"><button class="btn" id="sDone">Done</button>${ACCT() ? "" : `<button class="btn alt" id="sCloud">Restore from a backup code</button>`}<button class="btn alt" id="sRestore">Restore purchases</button><button class="btn alt" id="sCred">Credits</button></div>`, el => {
     el.querySelectorAll("[data-voice]").forEach(button => { button.onclick = () => {
       stopVoice(); voiceStyle = button.dataset.voice;
       try { localStorage.setItem("petalpop.voice", voiceStyle); } catch (_) {}
@@ -4513,7 +4555,8 @@ function showSettings(back) {
       if (soundOn) say("Let's bloom!");
     }; });
     el.querySelector("#sVoicePreview").onclick = () => { stopVoice(); say("Amazing!"); };
-    el.querySelector("#sCloud").onclick = () => show(`<div class="ribbon">Restore backup</div><h2>Enter your backup code</h2><p>Find it in Settings on your old phone. Your progress from both phones is combined.</p>
+    acctWire(el, () => showSettings(back));
+    if (el.querySelector("#sCloud")) el.querySelector("#sCloud").onclick = () => show(`<div class="ribbon">Restore backup</div><h2>Enter your backup code</h2><p>Find it in Settings on your old phone. Your progress from both phones is combined.</p>
       <input class="codein" id="cCode" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="ABCD2345"><p class="llnote" id="cMsg"></p>
       <div class="btns"><button class="btn" id="cGo">Restore</button><button class="btn alt" id="cBack">Back</button></div>`, e2 => {
       e2.querySelector("#cBack").onclick = () => showSettings(back);
@@ -4547,7 +4590,9 @@ function showProfile(back) {
     <p class="focus">Pick your flower</p>
     <div class="pavs">${AVATARS.map(i => `<button class="${i === av ? "on" : ""}" data-a="${i}" aria-label="${COLORS[i].name}"><img alt="" src="${SPRITE_SRC[i] || flowerIcon(i)}"></button>`).join("")}</div>
     <div class="pstats"><div><b>${cleared}</b>Levels cleared</div><div><b>${stars}</b>Stars</div><div><b>${farmLevel(farm().xp).lv}</b>Garden Level</div><div><b>${save.gems || 0}</b>Diamonds</div></div>
+    ${acctBox()}
     <div class="btns"><button class="btn" id="prDone">Done</button></div>`, el => {
+    acctWire(el, () => showProfile(back));
     el.querySelectorAll(".pavs button").forEach(b => b.onclick = () => { save.avatar = +b.dataset.a; persist(); showProfile(back); });
     el.querySelector("#prDone").onclick = back;
   });

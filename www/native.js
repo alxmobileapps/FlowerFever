@@ -163,6 +163,42 @@
     };
   }
 
+  /* ---------- Google sign-in + cloud save (Firebase Auth + Firestore, only when google-services.json was added) ---------- */
+  const FAuth = P('FirebaseAuthentication'), FS = P('FirebaseFirestore');
+  if (FAuth && FS && window.FLOWER_FIREBASE) {
+    const path = uid => `players/${uid}`;
+    let user = null;
+    const listeners = [];
+    const setUser = u => { user = u ? { uid: u.uid, name: u.displayName || '', email: u.email || '', photo: u.photoUrl || '' } : null; listeners.forEach(f => { try { f(user); } catch (e) {} }); };
+    FAuth.getCurrentUser().then(r => setUser(r && r.user)).catch(() => {});
+    try { FAuth.addListener('authStateChange', r => setUser(r && r.user)); } catch (e) {}
+    window.FlowerFeverAccount = {
+      get user() { return user; },
+      onChange(f) { listeners.push(f); },
+      async signIn() {
+        const r = await FAuth.signInWithGoogle();
+        setUser(r && r.user); return user;
+      },
+      async signOut() { try { await FAuth.signOut(); } catch (e) {} setUser(null); },
+      async save(data) {
+        if (!user) return false;
+        try { await FS.setDocument({ reference: path(user.uid), data: { save: JSON.stringify(data), updatedAt: Date.now(), v: 1 } }); return true; }
+        catch (e) { log('cloud save', e); return false; }
+      },
+      async load() {
+        if (!user) return null;
+        try { const r = await FS.getDocument({ reference: path(user.uid) }); const d = r && r.snapshot && r.snapshot.data; return d && d.save ? JSON.parse(d.save) : null; }
+        catch (e) { log('cloud load', e); return null; }
+      },
+      async deleteData() {
+        if (!user) return;
+        try { await FS.deleteDocument({ reference: path(user.uid) }); } catch (e) {}
+        try { await FAuth.deleteUser(); } catch (e) {}
+        setUser(null);
+      }
+    };
+  }
+
   /* ---------- Android back button: close the open window, or ask before leaving ---------- */
   const App = P('App');
   if (App) App.addListener('backButton', () => {

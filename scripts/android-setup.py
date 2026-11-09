@@ -76,6 +76,9 @@ public class MainActivity extends BridgeActivity {{
 vg = pathlib.Path("android/variables.gradle")
 edit(vg, lambda t: re.sub(r"(targetSdkVersion\s*=\s*)\d+", r"\g<1>36", re.sub(r"(compileSdkVersion\s*=\s*)\d+", r"\g<1>36", t)))
 edit(vg, lambda t: re.sub(r"(minSdkVersion\s*=\s*)\d+", r"\g<1>24", t))
+# Google sign-in for @capacitor-firebase/authentication (only when Firebase is set up)
+if pathlib.Path("android/app/google-services.json").exists():
+    edit(vg, lambda t: t if "rgcfaIncludeGoogle" in t else re.sub(r"ext\s*\{", "ext {\n    rgcfaIncludeGoogle = true", t, count=1))
 gp = pathlib.Path("android/gradle.properties")
 gp.write_text(gp.read_text().rstrip("\n") + "\nandroid.suppressUnsupportedCompileSdk=36\n")
 
