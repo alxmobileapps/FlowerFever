@@ -942,6 +942,7 @@ canvas#board{border-radius:0!important}
 .acctbox b{font:800 16px/1.2 var(--display);color:#5a2e44}.acctbox span{font:600 14px/1.35 var(--body);color:#8a5e6e}.acctbox small{font:600 12px/1.3 var(--body);color:#a88a96}
 .btn.gsignin{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff!important;color:#3c4043!important;box-shadow:0 0 0 2px #dadce0,0 3px 0 #c8cacd!important;font-size:17px;width:100%}
 .acctbox .btn{margin-top:4px}
+.acctbox .adel{border:0;background:none;color:#a0566e;font:700 13px/1.3 var(--body);text-decoration:underline;cursor:pointer;margin-top:2px}
 /* voice picker */
 .voice-choice{border:0;margin:0 0 14px;padding:12px;background:#fff;border-radius:14px;box-shadow:inset 0 -2px 0 #f3d6e2}
 .voice-choice legend{float:left;width:100%;font:800 16px/1.2 var(--display);color:var(--ink);margin-bottom:9px}
@@ -2031,11 +2032,13 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) acctS
 const acctBox = back => {
   const A = ACCT(); if (!A) return "";
   return A.user
-    ? `<div class="acctbox"><b>✅ Signed in with Google</b><span>${A.user.name || ""}${A.user.email ? `<br><small>${A.user.email}</small>` : ""}</span><small>${save.acctAt ? "Last saved " + new Date(save.acctAt).toLocaleString() : "Saving soon…"}</small><button class="btn alt" id="aOut">Sign out</button></div>`
+    ? `<div class="acctbox"><b>✅ Signed in with Google</b><span>${A.user.name || ""}${A.user.email ? `<br><small>${A.user.email}</small>` : ""}</span><small>${save.acctAt ? "Last saved " + new Date(save.acctAt).toLocaleString() : "Saving soon…"}</small><button class="btn alt" id="aOut">Sign out</button><button class="adel" id="aDel">Delete my account and cloud save</button></div>`
     : `<div class="acctbox"><b>☁ Save your progress</b><span>Sign in with Google to keep your levels, diamonds and garden safe, and play on any phone. (Optional)</span><button class="btn gsignin" id="aIn"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z"/></svg><span>Sign in with Google</span></button></div>`;
 };
 const acctWire = (el, again) => {
   const i = el.querySelector("#aIn"); if (i) i.onclick = () => acctSignIn(again);
+  const d = el.querySelector("#aDel"); if (d) d.onclick = () => show(`<div class="ribbon">Google account</div><h2>Delete your account?</h2><p>This deletes your Flower Fever account and the progress saved in the cloud. Your game stays on this phone. This can't be undone.</p><div class="btns"><button class="btn" id="dYes">Delete</button><button class="btn alt" id="oNo">Cancel</button></div>`,
+    e2 => { e2.querySelector("#oNo").onclick = again; e2.querySelector("#dYes").onclick = async () => { const A = ACCT(); if (A && A.deleteData) await A.deleteData(); track("account_delete", {}); delete save.acctAt; persist(); again(); }; });
   const o = el.querySelector("#aOut"); if (o) o.onclick = () => show(`<div class="ribbon">Google account</div><h2>Sign out?</h2><p>Your progress stays on this phone. It stops saving to your Google account until you sign in again.</p><div class="btns"><button class="btn" id="oYes">Sign out</button><button class="btn alt" id="oNo">Cancel</button></div>`,
     e2 => { e2.querySelector("#oNo").onclick = again; e2.querySelector("#oYes").onclick = async () => { await acctSave(); await ACCT().signOut(); track("sign_out", {}); again(); }; });
 };
@@ -4434,6 +4437,7 @@ function showMyGarden(onClose, plantCh) {
   el.querySelector(".fhomeb").onclick = () => { alive = false; clearInterval(tick); cancelAnimationFrame(petRaf); el.remove(); if (typeof mapOpen !== "undefined") mapOpen = null; gardenOpen = null; leaveToHome(); };
   keepMusic(); petRaf = requestAnimationFrame(petLoop);
   if (!f.lvSeen) { f.lvSeen = farmLevel(f.xp).lv; persist(); } else if (farmLevel(f.xp).lv > f.lvSeen) levelUp(f.lvSeen);
+  el._close = close;
   gardenOpen = fit; if (window.ResizeObserver) new ResizeObserver(fit).observe(el.querySelector(".fwrap"));
   render();
   if (!f.seen) { f.seen = 1; persist(); sheetShow(`<h3>🌷 Welcome to your garden!</h3><p>Win levels to earn ${FC_SVG} <b>flower coins</b> and 💧 water.</p><p>Tap a flower bed, tap empty soil and choose a flower. Wait for it to bloom, then pick it for more coins. Rare flowers take longer but earn more.</p><p>Here are ${FC_SVG}<b>150</b> to start!</p><div class="btns"><button class="btn" data-x>Let's plant!</button></div>`); }
@@ -4566,7 +4570,7 @@ function showSettings(back) {
       <button class="voice-option" type="button" data-voice="female" aria-pressed="${voiceStyle === "female"}">👩 Female</button>
     </div><button type="button" id="sVoicePreview" ${soundOn ? "" : "disabled"}>${soundOn ? "▶ Preview voice" : "Turn sound on to preview"}</button></fieldset>
     ${ACCT() ? acctBox() : `<div class="cloudbox"><b>☁ Cloud backup</b><span>Your backup code</span><code>${syncKey()}</code><small>${!FIREBASE_CONFIG ? "Cloud backup turns on in the app version." : save.cloudAt ? "Last saved " + new Date(save.cloudAt).toLocaleString() : "Saving soon…"}</small></div>`}
-    <div class="btns"><button class="btn" id="sDone">Done</button>${ACCT() ? "" : `<button class="btn alt" id="sCloud">Restore from a backup code</button>`}<button class="btn alt" id="sRestore">Restore purchases</button><button class="btn alt" id="sCred">Credits</button></div>`, el => {
+    <div class="btns"><button class="btn" id="sDone">Done</button>${ACCT() ? "" : `<button class="btn alt" id="sCloud">Restore from a backup code</button>`}<button class="btn alt" id="sRestore">Restore purchases</button><button class="btn alt" id="sPriv">Privacy policy</button><button class="btn alt" id="sCred">Credits</button></div>`, el => {
     el.querySelectorAll("[data-voice]").forEach(button => { button.onclick = () => {
       stopVoice(); voiceStyle = button.dataset.voice;
       try { localStorage.setItem("petalpop.voice", voiceStyle); } catch (_) {}
@@ -4599,6 +4603,7 @@ function showSettings(back) {
     el.querySelector("#sHap").onclick = () => { hapticsOn = !hapticsOn; try { localStorage.setItem("petalpop.haptics", hapticsOn ? "1" : "0"); } catch (_) {} if (hapticsOn) haptic("swap"); showSettings(back); };
     el.querySelector("#sDone").onclick = back;
     el.querySelector("#sCred").onclick = () => showCredits(() => showSettings(back));
+    el.querySelector("#sPriv").onclick = () => openLink(PRIVACY_URL);
   });
 }
 function showProfile(back) {
@@ -4616,6 +4621,40 @@ function showProfile(back) {
     el.querySelector("#prDone").onclick = back;
   });
 }
+
+/* ===== Android back button: goes back one step inside the game (called by the app's native back button) ===== */
+const PRIVACY_URL = "https://alxmobileapps.github.io/privacy/flower-fever.html";
+function openLink(url) {
+  const C = window.Capacitor;
+  if (C && C.isNativePlatform && C.isNativePlatform()) { window.location.href = url; return; }   // the app hands web links to the phone's browser
+  window.open(url, "_blank", "noopener");
+}
+window.FlowerFeverBack = function () {
+  const vis = q => { const e = document.querySelector(q); return e && !e.hidden && e.offsetParent !== null ? e : null; };
+  const tap = q => { const b = vis(q); if (b && !b.disabled) { b.click(); return true; } return false; };
+  // 1) the garden: an open card, a move in progress, a bed, then the garden itself
+  if (document.getElementById("gardenView")) {
+    const sheet = document.querySelector("#gardenView .fsheet:not([hidden])");
+    if (sheet) { const x = sheet.querySelector("#sBack,[data-x]"); if (x) x.click(); else sheet.hidden = true; return true; }
+    if (tap("#fCancel") || tap("#fBack")) return true;
+    const gv = document.getElementById("gardenView"); if (gv._close) { gv._close(); return true; }
+  }
+  // 2) a window on screen: use its own way back (a reward ad can't be skipped this way)
+  const ov = document.getElementById("overlay");
+  if (ov && !ov.hidden) {
+    if (vis("#adClaim") || vis("#adCancel")) return true;
+    if (["#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
+    const b = [...ov.querySelectorAll(".btns .btn")].reverse().find(x => !x.disabled && /^(back|close|cancel|not now|ok|done|got it|keep playing|resume|home|🏠)/i.test(x.textContent.trim()));
+    if (b) { b.click(); return true; }
+    return true;   // a window with no way back (e.g. a purchase in progress): stay
+  }
+  // 3) the level map
+  if (document.getElementById("mapView")) { const c = document.querySelector("#mapView .mclose"); if (c) { c.click(); return true; } }
+  // 4) playing a level: open the menu
+  if (!homeOpen) { const m = document.getElementById("bPause"); if (m && !busy && !reminderOpen) { m.click(); return true; } return true; }
+  // 5) on the home screen: let the app go to the background
+  return false;
+};
 let mapOpen = null;
 const MAP_SEAM = 56;
 function fitTitle(h) { let f = 34; h.style.fontSize = f + "px"; while (f > 16 && h.scrollWidth > h.clientWidth + 1) h.style.fontSize = --f + "px"; }

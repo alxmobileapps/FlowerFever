@@ -202,14 +202,9 @@
   /* ---------- Android back button: close the open window, or ask before leaving ---------- */
   const App = P('App');
   if (App) App.addListener('backButton', () => {
-    const ov = document.getElementById('overlay');
-    const sheet = document.querySelector('.fsheet:not([hidden])');
-    if (sheet) { sheet.hidden = true; return; }
-    const close = ov && !ov.hidden && ov.querySelector('#gBack,#llClose,#lfNo,#sDone,#back,#rOk,#pOk,#gok2');
-    if (close) { close.click(); return; }
-    const home = document.querySelector('.fhomeb,#bHome');
-    if (document.getElementById('homeView')) { App.minimizeApp(); return; }
-    if (home && home.offsetParent) { home.click(); return; }
-    App.minimizeApp();
+    // the game knows where "back" leads (close a window, leave a bed, open the menu during a level…); on the home screen the app goes to the background
+    let handled = false;
+    try { handled = !!(window.FlowerFeverBack && window.FlowerFeverBack()); } catch (e) { log('back', e); }
+    if (!handled) App.minimizeApp();
   });
 })();
