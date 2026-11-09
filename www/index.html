@@ -3098,8 +3098,8 @@ async function popAllSpecials() {   // every power-up on the board goes off — 
   eachPiece(p => { p.marked = 0; });
 }
 async function flowerShower() {
-  // a fast win earns a more generous shower: under 1/3 of the moves used = x2 cascades, otherwise as usual
-  { const allowed = movesUsed + moves, r = allowed ? movesUsed / allowed : 1; showerGen = r < 1 / 3 ? 2 : 1; }
+  // a fast win earns a more generous shower: under 1/3 of the moves used = x3 cascades, otherwise as usual
+  { const allowed = movesUsed + moves, r = allowed ? movesUsed / allowed : 1; showerGen = r < 1 / 3 ? 3 : 1; }
   inShower = true; showerT0 = gameT; showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
   setTimeout(() => { if (inShower) { skipBtn.hidden = false; ffBtn.hidden = false; } }, 600);
   // the more moves left, the bigger the party
