@@ -2024,7 +2024,7 @@ async function acctSync() {
 async function acctSignIn(after) {
   const A = ACCT(); if (!A) return;
   show(`<div class="ribbon">Google account</div><h2>Signing in…</h2><p>Choose your Google account in the window that opens.</p>`, () => {});
-  try { await A.signIn(); } catch (e) { show(`<div class="ribbon">Google account</div><h2>Not signed in</h2><p>Signing in didn't finish. You can try again any time from Settings.</p><div class="btns"><button class="btn" id="aOk">OK</button></div>`, el => el.querySelector("#aOk").onclick = after); return; }
+  try { await A.signIn(); } catch (e) { const why = String((e && (e.code ? e.code + ": " : "") + (e.message || e.errorMessage || "")) || e || "").replace(/[<>&]/g, "").slice(0, 160); show(`<div class="ribbon">Google account</div><h2>Not signed in</h2><p>Signing in didn't finish. You can try again any time from Settings.</p>${why ? `<p style="font-size:12px;opacity:.6;word-break:break-word">${why}</p>` : ""}<div class="btns"><button class="btn" id="aOk">OK</button></div>`, el => el.querySelector("#aOk").onclick = after); return; }
   if (!A.user) { after(); return; }
   const had = await acctSync(); track("sign_in", {});
   show(`<div class="ribbon">Google account</div><h2>Welcome, ${(A.user.name || "friend").split(" ")[0]}! 🌷</h2><p>${had ? `Your progress is back: Level ${save.unlocked}, ${save.gems || 0} diamonds.` : "Your progress now saves to your Google account. Sign in on any phone to keep playing."}</p><div class="btns"><button class="btn" id="aOk">Lovely!</button></div>`,
