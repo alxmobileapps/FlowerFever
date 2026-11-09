@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1047258709262",
+    "project_id": "flower-fever",
+    "storage_bucket": "flower-fever.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1047258709262:android:3867bb3ca553528f0c6b5f",
+        "android_client_info": {
+          "package_name": "com.alxmobileapps.flowerfever"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1047258709262-2q8ahs0pgnmlhs1ribcjv0i5d8t7cgl0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alxmobileapps.flowerfever",
+            "certificate_hash": "51bd417b2935550c228f022ffc2f3be1bfeaf327"
+          }
+        },
+        {
+          "client_id": "1047258709262-9p9ut60caaldmaevs0fjjohceaf358r1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alxmobileapps.flowerfever",
+            "certificate_hash": "4398c4d7cf9b9d0b7107994b3a641a2705a930a0"
+          }
+        },
+        {
+          "client_id": "1047258709262-lge1ihe9biv9gr7qkkacvartlpvhugs2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNfiWCBttIJtmg0gRQGNKiIORhgDT-CJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1047258709262-lge1ihe9biv9gr7qkkacvartlpvhugs2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
