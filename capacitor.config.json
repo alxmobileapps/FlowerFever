@@ -1,0 +1,11 @@
+{
+  "appId": "com.alxmobileapps.flowerfever",
+  "appName": "Flower Fever",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#fdf8f1"
+  },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_flower", "iconColor": "#E8467E" }
+  }
+}
