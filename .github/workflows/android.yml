@@ -61,6 +61,7 @@ jobs:
           python scripts/patch-admob-banner.py
           git apply scripts/board-webgl.patch
           git apply scripts/celebration-polish.patch
+          git apply scripts/webgl-effects.patch
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
