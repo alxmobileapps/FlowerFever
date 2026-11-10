@@ -42,8 +42,10 @@
 @@ -2167 +2160 @@
 -    for (let i = 0; i < 6 && pops.length < 80 * qf(); i++) { const a = i / 6 * TAU, v = .25 + Math.random() * .2; pops.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .12, ci: rnd(6), size: 16 + Math.random() * 12, rot: 0, vr: (Math.random() - .5) * .01, life: -k * 140, max: 1300 }); }
 +    for (let i = 0; i < 12 && pops.length < 160 * qf(); i++) { const a = i / 12 * TAU, v = .25 + Math.random() * .2; pops.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .12, ci: rnd(6), size: 16 + Math.random() * 12, rot: 0, vr: (Math.random() - .5) * .01, life: -k * 140, max: 1300 }); }
-@@ -2258 +2251 @@
+@@ -2257,2 +2250,2 @@
+-function fxBeam(dir, idx, color, width = 1, a = 0, b = (dir === "h" ? COLS : ROWS) - 1) { addShock({ line: dir, idx, str: .3, maxR: 3.5 }); fx.push({ k: "beam", dir, idx, color, width, a, b, t0: T(), dur: inShower ? 760 : 880 }); burstLine(dir, idx, color); for (let i = 0; i < 18; i++) { const x = dir === "h" ? Math.random() * COLS : idx + .5, y = dir === "h" ? idx + .5 : Math.random() * ROWS; parts.push({ x, y, vx: (Math.random() - .5) * .004, vy: (Math.random() - .5) * .004, rot: 0, vr: 0, life: 0, max: 400, kind: "spark", col: "#fff", size: .16 }); } }
 -function fxRing(r, c, R, color) { addShock({ r, c, str: .3 + R * .06, maxR: 3.2 + R * 1.5, speed: .01 + R * .002 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + .8, color, t0: T(), dur: 560 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + 1.4, color, t0: T() + 90, dur: 520, thin: true }); burst(r, c, color, 16, 2.2); }
++function fxBeam(dir, idx, color, width = 1, a = 0, b = (dir === "h" ? COLS : ROWS) - 1) { addShock({ line: dir, idx, str: .3, maxR: 3.5 }); fx.push({ k: "beam", dir, idx, color, width, a, b, t0: T(), dur: 880 }); burstLine(dir, idx, color); for (let i = 0; i < 18; i++) { const x = dir === "h" ? Math.random() * COLS : idx + .5, y = dir === "h" ? idx + .5 : Math.random() * ROWS; parts.push({ x, y, vx: (Math.random() - .5) * .004, vy: (Math.random() - .5) * .004, rot: 0, vr: 0, life: 0, max: 400, kind: "spark", col: "#fff", size: .16 }); } }
 +function fxRing(r, c, R, color) { addShock({ r, c, str: .3 + R * .06, maxR: 3.2 + R * 1.5, speed: .01 + R * .002 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + .8, color, t0: T(), dur: 560 }); if (!inShower) fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + 1.4, color, t0: T() + 90, dur: 520, thin: true }); burst(r, c, color, 16, 2.2); }
 @@ -2269 +2262 @@
 -  mag = Math.min(1, mag * .72) / Math.hypot(1, .5);
@@ -162,7 +164,7 @@
 @@ -2655,2 +2709,14 @@
 -      await sleep(inShower || direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
 -      p.charge = 0; if (grid[p.r][p.c] === p && !p.fired) { if (p.type === "bomb") rainbowFired = true; trigger(p, next, bees); }
-+      await sleep(inShower ? 120 : direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
++      await sleep(direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
 +      p.charge = 0;
 +      if (inShower) await waitForShowerBeat();
 +      if (inShower && showerSkip) break;
@@ -203,7 +205,7 @@
 +  }
 @@ -2752 +2836,2 @@
 -  const fl = { sx: c, sy: r, ex: tg[1], ey: tg[0], t0: T(), dur: BEE_MS, color };
-+  const flightMs = inShower ? SHOWER_EFFECT_MS : BEE_MS;
++  const flightMs = BEE_MS;
 +  const fl = { sx: c, sy: r, ex: tg[1], ey: tg[0], t0: T(), dur: fastFwd ? flightMs / SHOWER_FAST_SPEED : flightMs, color };
 @@ -2754,2 +2839,2 @@
 -  await sleep(BEE_MS);
@@ -226,6 +228,9 @@
 @@ -2977 +3065 @@
 -      const p = grid[r - 1][sc]; if (!p || p.frozen || used.has(p.id)) continue;
 +      const p = grid[r - 1][sc]; if (!p || p.frozen || staysInShower(p) || used.has(p.id)) continue;
+@@ -3009 +3097 @@
+-      if (nx) { nx.later = false; await sleep(250); if (grid[nx.r][nx.c] === nx && !nx.fired) await blast([[nx.r, nx.c]], false, true); continue; }
++      if (nx) { nx.later = false; await sleep(CASCADE_SPECIAL_DELAY_MS); if (grid[nx.r][nx.c] === nx && !nx.fired) await blast([[nx.r, nx.c]], false, true); continue; }
 @@ -3011 +3099 @@
 -    const armed = []; eachPiece((p, r, c) => { if (p.armed) armed.push([r, c]); });
 +    const armed = []; eachPiece((p, r, c) => { if (!inShower && p.armed) armed.push([r, c]); });
@@ -238,8 +243,9 @@
 @@ -3167 +3255 @@
 -ffBtn.onclick = e => { e.stopPropagation(); fastFwd = !fastFwd; ffBtn.classList.toggle("on", fastFwd); ffBtn.innerHTML = fastFwd ? "<span>⏩</span> 3×" : "<span>⏩</span> Fast"; };
 +ffBtn.onclick = e => { e.stopPropagation(); fastFwd = !fastFwd; ffBtn.classList.toggle("on", fastFwd); ffBtn.innerHTML = fastFwd ? "<span>⏩</span> " + SHOWER_FAST_SPEED + "×" : "<span>⏩</span> Fast"; };
-@@ -3170 +3258,19 @@
+@@ -3170 +3258,16 @@
 -async function popAllSpecials() {   // every power-up on the board goes off — one at a time, letting the flowers fall in between
++const CASCADE_SPECIAL_DELAY_MS = 250;
 +const SHOWER_EFFECT_MS = 500;
 +let showerEffectAt = -Infinity;
 +async function waitForShowerBeat() {
@@ -253,13 +259,9 @@
 +}
 +function beginShowerEffect() {
 +  showerEffectAt = T();
-+  // End the previous visual tail so the power-ups still appear one at a time.
-+  fx = [];
-+  parts = [];
-+  shocks = [];
 +}
 +async function popAllSpecials() {
-@@ -3172,2 +3278,11 @@
+@@ -3172,2 +3275,11 @@
 -    const sp = []; eachPiece((p, r, c) => { if (p.type !== "normal" && !p.frozen) { p.shield = false; sp.push(p); } });
 -    if (!sp.length) break;
 +    const specials = [];
@@ -273,7 +275,7 @@
 +    // Lit-up power-ups go first, then the oldest. A rainbow hit only queues others.
 +    specials.sort((a, b) => (a.marked || 1e15) - (b.marked || 1e15) || (a.pop || 0) - (b.pop || 0));
 +    const p = specials[0];
-@@ -3175,16 +3290,13 @@
+@@ -3175,16 +3287,14 @@
 -    // power-ups touching each other team up into their combo effect instead of going off alone
 -    let pair = null;
 -    for (const a of sp) { for (const [dr, dc] of [[0, 1], [1, 0]]) { const b = grid[a.r + dr] && grid[a.r + dr][a.c + dc]; if (b && b.type !== "normal" && !b.frozen && !b.fired) { pair = [a, b]; break; } } if (pair) break; }
@@ -301,40 +303,41 @@
 +      }
 +    }
 +    p.marked = 0;
++    await sleep(CASCADE_SPECIAL_DELAY_MS);
 +    await blast([[p.r, p.c]], false, true, group.slice(1));
 +    await resolve(null);
-@@ -3197 +3309 @@
+@@ -3197 +3307 @@
 -  inShower = true; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
 +  inShower = true; showerEffectAt = -Infinity; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
-@@ -3200 +3312 @@
+@@ -3200 +3310 @@
 -  const left = moves; showerHeat = Math.min(6, 1 + Math.floor(left / 3));
 +  const left = moves;
-@@ -3202 +3314 @@
+@@ -3202 +3312 @@
 -  if (left > 0) { praise("Flower Shower!"); celebrate(showerHeat + 1); }
 +  if (left > 0) praise("Flower Shower!");
-@@ -3205,2 +3317 @@
+@@ -3205,2 +3315 @@
 -  // first, set off the power-ups already on the board (one by one, ~0.25 s apart) before any moves turn into new ones.
 -  // Same rhythm as the converted moves: let the last match settle, light each one up in turn, then fire them in sequence.
 +  // Finish the previous cascade before firing the existing power-ups.
-@@ -3208,4 +3318,0 @@
+@@ -3208,4 +3316,0 @@
 -  for (let w = 0; w < 30 && !showerSkip && (drift.length || parts.some(q => q.kind === "petal")); w++) await sleep(80);
 -  { const ex = []; eachPiece(p => { if (p.type !== "normal") ex.push(p); });
 -    for (const p of ex) { if (showerSkip) break; p.pop = T(); sparkleAt(p.r, p.c, 8); sfx("convert", ex.indexOf(p)); await sleep(140); }
 -    if (ex.length) await sleep(250); }
-@@ -3213,2 +3320 @@
+@@ -3213,2 +3318 @@
 -  // let the petals settle before the leftover moves turn into new power-ups
 -  for (let w = 0; w < 50 && !showerSkip && (drift.length || parts.some(q => q.kind === "petal")); w++) await sleep(80);
 +  await waitForShowerBeat();
-@@ -3228 +3334 @@
+@@ -3228 +3332 @@
 -    p.pop = T(); sparkleAt(p.r, p.c, 8);
 +    p.pop = T();
-@@ -3230,3 +3336,2 @@
+@@ -3230,3 +3334,2 @@
 -    await sleep(150);
 -  }
 -  const tStart = T();
 +    await sleep(250);
 +  }
-@@ -3245,0 +3351,13 @@
+@@ -3245,0 +3349,13 @@
 +  await waitForShowerBeat();
 +  if (left > 0 && !showerSkip && !showerTurbo) {
 +    beginShowerEffect();
@@ -348,7 +351,7 @@
 +    sfx("fever", 3);
 +    await waitForShowerBeat();
 +  }
-@@ -3247,13 +3365,6 @@
+@@ -3247,13 +3363,6 @@
 -  // finale: one firework per move that was left (up to 12)
 -  if (showerTurbo) { showerTurbo = false; turboCover(false); fx = []; flyers = []; sfx("win"); }
 -  if (left > 0 && !showerSkip && !showerTurbo) {
@@ -368,7 +371,7 @@
 +    sfx("win");
 +  }
 +  inShower = false; luckyRefill = 0; showerCalm = false; celebrateEnd();
-@@ -3555,0 +3667,19 @@
+@@ -3555,0 +3665,19 @@
 +const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alxmobileapps.flowerfever";
 +let ratingPromptSeen = false;
 +function afterRatedMilestone(next) {
@@ -388,30 +391,30 @@
 +    };
 +  });
 +}
-@@ -3566 +3696 @@
+@@ -3566 +3694 @@
 -  save.adWins = (save.adWins || 0) + 1;
 +  countFinishedRound();
-@@ -3595,0 +3726 @@
+@@ -3595,0 +3724 @@
 +  const leaveWin = next => wasCh ? next() : afterRatedMilestone(next);
-@@ -3613 +3744 @@
+@@ -3613 +3742 @@
 -      const n = el.querySelector("#next"); if (n) n.onclick = () => startLevel(levelIdx + 1);
 +      const n = el.querySelector("#next"); if (n) n.onclick = () => leaveWin(() => startLevel(levelIdx + 1));
-@@ -3615 +3746 @@
+@@ -3615 +3744 @@
 -      el.querySelector("#again").onclick = () => startLevel(levelIdx, wasCh);
 +      el.querySelector("#again").onclick = () => leaveWin(() => startLevel(levelIdx, wasCh));
-@@ -3617 +3748 @@
+@@ -3617 +3746 @@
 -      el.querySelector("#wHome").onclick = showHome;
 +      el.querySelector("#wHome").onclick = () => leaveWin(showHome);
-@@ -3657 +3788 @@
+@@ -3657 +3786 @@
 -  if (!again) { track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
 +  if (!again) { countFinishedRound(); track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
-@@ -4461 +4592 @@
+@@ -4461 +4590 @@
 -let homeOpen = false, homeRaf = 0;
 +let homeOpen = false, homeRaf = 0, panoramaIntroPlayed = false;
-@@ -4523 +4654 @@
+@@ -4523 +4652 @@
 -    <div class="h3map"><div class="h3scroll"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div>
 +    <div class="h3map"><div class="h3scroll"><div class="h3track"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div></div>
-@@ -4539 +4670,35 @@
+@@ -4539 +4668,35 @@
 -  const NG = PLAN_GARDENS.length;
 +  const sc = el.querySelector(".h3scroll"), trackEl = el.querySelector(".h3track"), strip = el.querySelector(".h3strip");
 +  // Mirror just the outer edge where centering the first or last pin needs more artwork.
@@ -448,15 +451,15 @@
 +      : rightEnd + (center - rightEnd) * (k * k * (3 - 2 * k));
 +    if (k < 1) homeRaf = requestAnimationFrame(animatePanorama);
 +  };
-@@ -4541 +4706,3 @@
+@@ -4541 +4704,3 @@
 -    const sc = el.querySelector(".h3scroll"), vw = sc.clientWidth; if (!vw) return;
 +    if (!el.isConnected) return;
 +    const vw = sc.clientWidth;
 +    if (!vw) return;
-@@ -4543 +4710 @@
+@@ -4543 +4708 @@
 -      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
 +      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3");
-@@ -4547 +4714,16 @@
+@@ -4547 +4712,16 @@
 -      strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
 +      const artWidth = vw * 7.20530387 * (base + mx) / Math.max(1, base);
 +      const pin = PANO_POS[gi][2] / 100 * artWidth;
@@ -474,7 +477,7 @@
 +      trackEl.style.width = (artWidth + leftPad + rightPad) + "px";
 +      center = leftPad + pin - vw / 2;
 +      rightEnd = Math.max(0, leftPad + artWidth - vw);
-@@ -4553 +4735,9 @@
+@@ -4553 +4733,9 @@
 -    if (!sc.dataset.placed) { sc.dataset.placed = 1; sc.scrollLeft = PANO_POS[gi][2] / 100 * sc.scrollWidth - vw / 2; }
 +    if (!panoramaIntroPlayed) {
 +      panoramaIntroPlayed = true;
@@ -485,22 +488,22 @@
 +      }
 +    }
 +    if (!interrupted && (introStart === null || performance.now() - introStart >= introDuration)) sc.scrollLeft = center;
-@@ -4556 +4746 @@
+@@ -4556 +4744 @@
 -  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh) showStart(); else startLevel(next); };
 +  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh && !interstitialDue(false)) showStart(); else startLevel(next); };
-@@ -4658 +4848 @@
+@@ -4658 +4846 @@
 -    if (["#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
 +    if (["#offerLater", "#rateLater", "#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
-@@ -4819 +5009 @@
+@@ -4819 +5007 @@
 -  const want = adsAllowed() && !homeOpen && !mapOpen && (booted || !!gardenOpen);
 +  const want = adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted));
-@@ -4826 +5016 @@
+@@ -4826 +5014 @@
 -  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => {});
 +  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => false);
-@@ -4832 +5022 @@
+@@ -4832 +5020 @@
 -    btn.onclick = () => { el.remove(); res(); };
 +    btn.onclick = () => { el.remove(); res(true); };
-@@ -4834,0 +5025,9 @@
+@@ -4834,0 +5023,9 @@
 +let roundCounted = false, interstitialPending = false;
 +function countFinishedRound() {
 +  if (roundCounted) return;
@@ -510,7 +513,7 @@
 +function interstitialDue(asChallenge) {
 +  return booted && adsAllowed() && !asChallenge && (save.adRounds ?? save.adWins ?? 0) >= 5;
 +}
-@@ -4835,0 +5035,16 @@
+@@ -4835,0 +5033,16 @@
 +  if (interstitialPending) return;
 +  if (interstitialDue(asChallenge)) {
 +    save.adRounds = 0;
@@ -527,11 +530,11 @@
 +    });
 +    return;
 +  }
-@@ -4837,2 +5051,0 @@
+@@ -4837,2 +5049,0 @@
 -  // between-level ad: after every 5 levels won (never for "No ads" buyers, never when the app first opens)
 -  if (booted && adsAllowed() && i >= 20 && !challenge && (save.adWins || 0) >= 5) { save.adWins = 0; persist(); busy = true; showInterstitial().then(() => startLevel(i, asChallenge)); return; }
-@@ -4839,0 +5053 @@
+@@ -4839,0 +5051 @@
 +  roundCounted = false;
-@@ -5188 +5402 @@
+@@ -5188 +5400 @@
 -  if (showerTurbo) for (let k = 0; k < 30; k++) { gameOff += 40; update(t, 40); } else update(t, fastFwd ? dt * 2.5 : dt); draw(t); drawParty(t, dt); syncBanner();
 +  if (showerTurbo) for (let k = 0; k < 30; k++) { gameOff += 40; update(t, 40); } else update(t, fastFwd ? dt * SHOWER_FAST_SPEED : dt); draw(t); drawParty(t, dt); syncBanner();
