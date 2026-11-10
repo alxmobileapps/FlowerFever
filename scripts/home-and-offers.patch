@@ -1,10 +1,17 @@
 --- a/www/index.html
 +++ b/www/index.html
-@@ -778,0 +779 @@
+@@ -778,0 +779,8 @@
 +.h3track{position:relative;height:100%}
-@@ -2529,0 +2531 @@
++.h3edge{position:absolute;top:0;height:100%;overflow:hidden;pointer-events:none}
++.h3edge[hidden]{display:none}
++.h3edge img{position:absolute;top:0;height:100%;max-width:none;display:block;object-fit:fill;transform:scaleX(-1)}
++.h3edge.start{left:0}
++.h3edge.start img{right:0}
++.h3edge.end{right:0}
++.h3edge.end img{left:0}
+@@ -2529,0 +2538 @@
 +  if (p.noAds && save.noAds) return true;
-@@ -2536,0 +2539,49 @@
+@@ -2536,0 +2546,49 @@
 +const gemPackPrice = pack => window.FlowerFeverStore?.prices?.[pack.id] || pack.price;
 +const gemPackCard = p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${gemPackPrice(p)}</i></button>`;
 +const REMOVE_ADS_PACK = GEM_PACKS.find(pack => pack.noAds);
@@ -54,12 +61,12 @@
 +  });
 +}
 +
-@@ -2542 +2592,0 @@
+@@ -2542 +2599,0 @@
 -  const price = p => (window.FlowerFeverStore && window.FlowerFeverStore.prices && window.FlowerFeverStore.prices[p.id]) || p.price;
-@@ -2550 +2600 @@
+@@ -2550 +2607 @@
 -    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${price(p)}</i></button>`).join("")}</div>
 +    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(gemPackCard).join("")}</div>
-@@ -2556,2 +2606,8 @@
+@@ -2556,2 +2613,8 @@
 -    el.querySelectorAll(".gempack").forEach(b => b.onclick = async () => { const p = GEM_PACKS[+b.dataset.i]; if (await buyPack(p)) { track("purchase", { id: p.id, price: p.price }); addGems(p.n); if (p.noAds) { save.noAds = true; try { window.FlowerFeverAds && window.FlowerFeverAds.hideBanner && window.FlowerFeverAds.hideBanner(); } catch (e) {} }
 -      if (p.lives) save.freeLife = freeLives() + p.lives; if (p.starter) save.starterBought = true; persist(); sfx("win"); } done(); });
 +    el.querySelectorAll(".gempack").forEach(button => button.onclick = async () => {
@@ -70,7 +77,7 @@
 +      finally { delete el.dataset.buying; }
 +      if (!overlay.hidden && el.contains(button)) done();
 +    });
-@@ -3555,0 +3612,19 @@
+@@ -3555,0 +3619,19 @@
 +const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alxmobileapps.flowerfever";
 +let ratingPromptSeen = false;
 +function afterRatedMilestone(next) {
@@ -90,32 +97,48 @@
 +    };
 +  });
 +}
-@@ -3566 +3641 @@
+@@ -3566 +3648 @@
 -  save.adWins = (save.adWins || 0) + 1;
 +  countFinishedRound();
-@@ -3595,0 +3671 @@
+@@ -3595,0 +3678 @@
 +  const leaveWin = next => wasCh ? next() : afterRatedMilestone(next);
-@@ -3613 +3689 @@
+@@ -3613 +3696 @@
 -      const n = el.querySelector("#next"); if (n) n.onclick = () => startLevel(levelIdx + 1);
 +      const n = el.querySelector("#next"); if (n) n.onclick = () => leaveWin(() => startLevel(levelIdx + 1));
-@@ -3615 +3691 @@
+@@ -3615 +3698 @@
 -      el.querySelector("#again").onclick = () => startLevel(levelIdx, wasCh);
 +      el.querySelector("#again").onclick = () => leaveWin(() => startLevel(levelIdx, wasCh));
-@@ -3617 +3693 @@
+@@ -3617 +3700 @@
 -      el.querySelector("#wHome").onclick = showHome;
 +      el.querySelector("#wHome").onclick = () => leaveWin(showHome);
-@@ -3657 +3733 @@
+@@ -3657 +3740 @@
 -  if (!again) { track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
 +  if (!again) { countFinishedRound(); track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
-@@ -4461 +4537 @@
+@@ -4461 +4544 @@
 -let homeOpen = false, homeRaf = 0;
 +let homeOpen = false, homeRaf = 0, panoramaIntroPlayed = false;
-@@ -4523 +4599 @@
+@@ -4523 +4606 @@
 -    <div class="h3map"><div class="h3scroll"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div>
 +    <div class="h3map"><div class="h3scroll"><div class="h3track"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div></div>
-@@ -4539 +4615,20 @@
+@@ -4539 +4622,35 @@
 -  const NG = PLAN_GARDENS.length;
 +  const sc = el.querySelector(".h3scroll"), trackEl = el.querySelector(".h3track"), strip = el.querySelector(".h3strip");
++  // Mirror just the outer edge where centering the first or last pin needs more artwork.
++  const addEdge = (side, src) => {
++    const edge = document.createElement("div"), img = document.createElement("img");
++    edge.className = "h3edge " + side;
++    edge.setAttribute("aria-hidden", "true");
++    edge.hidden = true;
++    img.alt = "";
++    img.draggable = false;
++    img.src = src;
++    edge.appendChild(img);
++    trackEl.appendChild(edge);
++    return { edge, img };
++  };
++  const startEdge = addEdge("start", HOME_PANELS[0]), endEdge = addEdge("end", HOME_PANELS.at(-1));
++  const outbound = 9000, pause = 250, inbound = 6500;
++  const introDuration = outbound + pause + inbound;
 +  let interrupted = false, introStart = null, center = 0, rightEnd = 0;
 +  const stopPanorama = () => {
 +    interrupted = true;
@@ -129,32 +152,38 @@
 +    if (interrupted || !el.isConnected) return;
 +    if (introStart === null) introStart = now;
 +    const elapsed = now - introStart;
-+    const outbound = 3500, pause = 200, inbound = 1600;
 +    const k = Math.min(1, Math.max(0, (elapsed - outbound - pause) / inbound));
 +    sc.scrollLeft = elapsed < outbound ? rightEnd * elapsed / outbound
 +      : rightEnd + (center - rightEnd) * (k * k * (3 - 2 * k));
 +    if (k < 1) homeRaf = requestAnimationFrame(animatePanorama);
 +  };
-@@ -4541 +4636,3 @@
+@@ -4541 +4658,3 @@
 -    const sc = el.querySelector(".h3scroll"), vw = sc.clientWidth; if (!vw) return;
 +    if (!el.isConnected) return;
 +    const vw = sc.clientWidth;
 +    if (!vw) return;
-@@ -4543 +4640 @@
+@@ -4543 +4662 @@
 -      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
 +      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3");
-@@ -4547 +4644,9 @@
+@@ -4547 +4666,16 @@
 -      strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
 +      const artWidth = vw * 7.20530387 * (base + mx) / Math.max(1, base);
 +      const pin = PANO_POS[gi][2] / 100 * artWidth;
 +      const leftPad = Math.max(0, vw / 2 - pin);
 +      const rightPad = Math.max(0, vw / 2 - (artWidth - pin));
++      // Match the rendered panel width so the reflected edge has the same scale.
++      const panelWidth = artWidth * .2531468531;
++      for (const [{ edge, img }, width] of [[startEdge, leftPad], [endEdge, rightPad]]) {
++        edge.hidden = width === 0;
++        edge.style.width = width + "px";
++        img.style.width = panelWidth + "px";
++      }
 +      strip.style.setProperty("width", artWidth + "px", "important");
 +      strip.style.marginLeft = leftPad + "px";
 +      trackEl.style.width = (artWidth + leftPad + rightPad) + "px";
 +      center = leftPad + pin - vw / 2;
 +      rightEnd = Math.max(0, leftPad + artWidth - vw);
-@@ -4553 +4658,9 @@
+@@ -4553 +4687,9 @@
 -    if (!sc.dataset.placed) { sc.dataset.placed = 1; sc.scrollLeft = PANO_POS[gi][2] / 100 * sc.scrollWidth - vw / 2; }
 +    if (!panoramaIntroPlayed) {
 +      panoramaIntroPlayed = true;
@@ -164,20 +193,20 @@
 +        return;
 +      }
 +    }
-+    if (!interrupted && (introStart === null || performance.now() - introStart >= 5300)) sc.scrollLeft = center;
-@@ -4556 +4669 @@
++    if (!interrupted && (introStart === null || performance.now() - introStart >= introDuration)) sc.scrollLeft = center;
+@@ -4556 +4698 @@
 -  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh) showStart(); else startLevel(next); };
 +  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh && !interstitialDue(false)) showStart(); else startLevel(next); };
-@@ -4658 +4771 @@
+@@ -4658 +4800 @@
 -    if (["#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
 +    if (["#offerLater", "#rateLater", "#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
-@@ -4826 +4939 @@
+@@ -4826 +4968 @@
 -  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => {});
 +  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => false);
-@@ -4832 +4945 @@
+@@ -4832 +4974 @@
 -    btn.onclick = () => { el.remove(); res(); };
 +    btn.onclick = () => { el.remove(); res(true); };
-@@ -4834,0 +4948,9 @@
+@@ -4834,0 +4977,9 @@
 +let roundCounted = false, interstitialPending = false;
 +function countFinishedRound() {
 +  if (roundCounted) return;
@@ -187,7 +216,7 @@
 +function interstitialDue(asChallenge) {
 +  return booted && adsAllowed() && !asChallenge && (save.adRounds ?? save.adWins ?? 0) >= 5;
 +}
-@@ -4835,0 +4958,16 @@
+@@ -4835,0 +4987,16 @@
 +  if (interstitialPending) return;
 +  if (interstitialDue(asChallenge)) {
 +    save.adRounds = 0;
@@ -204,8 +233,8 @@
 +    });
 +    return;
 +  }
-@@ -4837,2 +4974,0 @@
+@@ -4837,2 +5003,0 @@
 -  // between-level ad: after every 5 levels won (never for "No ads" buyers, never when the app first opens)
 -  if (booted && adsAllowed() && i >= 20 && !challenge && (save.adWins || 0) >= 5) { save.adWins = 0; persist(); busy = true; showInterstitial().then(() => startLevel(i, asChallenge)); return; }
-@@ -4839,0 +4976 @@
+@@ -4839,0 +5005 @@
 +  roundCounted = false;
