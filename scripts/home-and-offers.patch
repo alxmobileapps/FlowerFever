@@ -11,7 +11,9 @@
 +.h3edge.start img{right:0}
 +.h3edge.end{right:0}
 +.h3edge.end img{left:0}
-@@ -2147,19 +2156 @@
+@@ -827,0 +837 @@
++.farm .fad:not([hidden]) ~ .fsheet{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+@@ -2147,19 +2157 @@
 -  // end-of-round cascades: the celebration itself floods the board (petal fountains, fireworks, sparkles)
 -  if (inShower) {
 -    const fountains = 2 + Math.floor(nn / 3);
@@ -32,15 +34,29 @@
 -  }
 -  if (n >= 4 && pops.length < 50) for (let k = 0; k < Math.ceil(Math.min(inShower ? 3 : 4, nn - 2) * .75); k++) {
 +  if (n >= 4 && pops.length < 50) for (let k = 0; k < Math.ceil(Math.min(4, nn - 2) * .75); k++) {
-@@ -2258 +2249 @@
+@@ -2258 +2250 @@
 -function fxRing(r, c, R, color) { addShock({ r, c, str: .3 + R * .06, maxR: 3.2 + R * 1.5, speed: .01 + R * .002 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + .8, color, t0: T(), dur: 560 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + 1.4, color, t0: T() + 90, dur: 520, thin: true }); burst(r, c, color, 16, 2.2); }
 +function fxRing(r, c, R, color) { addShock({ r, c, str: .3 + R * .06, maxR: 3.2 + R * 1.5, speed: .01 + R * .002 }); fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + .8, color, t0: T(), dur: 560 }); if (!inShower) fx.push({ k: "ring", x: c + .5, y: r + .5, R: R + 1.4, color, t0: T() + 90, dur: 520, thin: true }); burst(r, c, color, 16, 2.2); }
-@@ -2269 +2260 @@
+@@ -2269 +2261 @@
 -  mag = Math.min(1, mag * .72) / Math.hypot(1, .5);
-+  mag = Math.min(2, mag * .72) / Math.hypot(1, .5);
-@@ -2529,0 +2521 @@
++  mag = Math.min(3, mag * .72) / Math.hypot(1, .5);
+@@ -2335,2 +2327,2 @@
+-function collectColor(color, r, c) {
+-  for (const g of goals) if (g.k === "color" && g.c === color && g.left > 0) { g.left--; flyIcon(g, r, c); return; }
++function collectColor(color, r, c, immediate = false) {
++  for (const g of goals) if (g.k === "color" && g.c === color && g.left > 0) { g.left--; creditGoal(g, r, c, immediate); return; }
+@@ -2342,2 +2334,6 @@
+-function countSpecial(t, r, c) {
+-  for (const g of goals) if (g.k === "special" && g.t === t && g.left > 0) { g.left--; flyIcon(g, r, c); return; }
++function countSpecial(t, r, c, immediate = false) {
++  for (const g of goals) if (g.k === "special" && g.t === t && g.left > 0) { g.left--; creditGoal(g, r, c, immediate); return; }
++}
++function creditGoal(g, r, c, immediate) {
++  if (immediate) { g.shown = g.left; renderGoal(g); }
++  else flyIcon(g, r, c);
+@@ -2529,0 +2526 @@
 +  if (p.noAds && save.noAds) return true;
-@@ -2536,0 +2529,49 @@
+@@ -2536,0 +2534,49 @@
 +const gemPackPrice = pack => window.FlowerFeverStore?.prices?.[pack.id] || pack.price;
 +const gemPackCard = p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${gemPackPrice(p)}</i></button>`;
 +const REMOVE_ADS_PACK = GEM_PACKS.find(pack => pack.noAds);
@@ -90,12 +106,12 @@
 +  });
 +}
 +
-@@ -2542 +2582,0 @@
+@@ -2542 +2587,0 @@
 -  const price = p => (window.FlowerFeverStore && window.FlowerFeverStore.prices && window.FlowerFeverStore.prices[p.id]) || p.price;
-@@ -2550 +2590 @@
+@@ -2550 +2595 @@
 -    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${price(p)}</i></button>`).join("")}</div>
 +    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(gemPackCard).join("")}</div>
-@@ -2556,2 +2596,8 @@
+@@ -2556,2 +2601,8 @@
 -    el.querySelectorAll(".gempack").forEach(b => b.onclick = async () => { const p = GEM_PACKS[+b.dataset.i]; if (await buyPack(p)) { track("purchase", { id: p.id, price: p.price }); addGems(p.n); if (p.noAds) { save.noAds = true; try { window.FlowerFeverAds && window.FlowerFeverAds.hideBanner && window.FlowerFeverAds.hideBanner(); } catch (e) {} }
 -      if (p.lives) save.freeLife = freeLives() + p.lives; if (p.starter) save.starterBought = true; persist(); sfx("win"); } done(); });
 +    el.querySelectorAll(".gempack").forEach(button => button.onclick = async () => {
@@ -106,25 +122,36 @@
 +      finally { delete el.dataset.buying; }
 +      if (!overlay.hidden && el.contains(button)) done();
 +    });
-@@ -2570 +2616 @@
+@@ -2569,2 +2620,2 @@
+-  if (p.color >= 0 && p.type !== "bomb") collectColor(p.color, p.r, p.c);
 -  sfx("pop", comboLevel);
++  if (p.color >= 0 && p.type !== "bomb") collectColor(p.color, p.r, p.c, opts.silent);
 +  if (!opts.silent) sfx("pop", comboLevel);
-@@ -2594 +2640 @@
+@@ -2594 +2645 @@
 -function trigger(p, next, bees) {
 +function trigger(p, next, bees, finishWrap = false) {
-@@ -2605 +2651 @@
+@@ -2605 +2656 @@
 -      fxRing(r, c, R, p.color); burst(r, c, p.color, 14, 1.6); sfx("boom"); shake(R > 1 ? 10 : 6);
 +      fxRing(r, c, R, p.color); if (!inShower) burst(r, c, p.color, 14, 1.6); sfx("boom"); shake(R > 1 ? 10 : 6);
-@@ -2607 +2653 @@
+@@ -2607 +2658 @@
 -      if (!p.armed) p.armed = true; else { p.fired = true; destroy(p); }
 +      if (!p.armed && !finishWrap) p.armed = true; else { p.fired = true; destroy(p); }
-@@ -2612 +2658 @@
+@@ -2612 +2663 @@
 -      ts.forEach(([tr, tc], i) => fxBolt(r, c, tr, tc, i * 18)); sfx("bomb"); destroy(p);
 +      (inShower ? ts.slice(0, 1) : ts).forEach(([tr, tc], i) => fxBolt(r, c, tr, tc, i * 18)); sfx("bomb"); destroy(p);
-@@ -2621 +2667 @@
+@@ -2621 +2672 @@
 -async function blast(cells, together = false, direct = false) {   // direct: the Flower Shower firing its chosen power-up
 +async function blast(cells, together = false, direct = false, scoreOnly = []) {   // direct: the Flower Shower firing its chosen power-up
-@@ -2655,2 +2701,14 @@
+@@ -2622,0 +2674,2 @@
++  // The lead special supplies the group animation. Avoid per-flower bursts and audio in its clear wave.
++  const groupClear = scoreOnly.length ? { noAnim: true, silent: true } : undefined;
+@@ -2631 +2684 @@
+-      if (p.frozen) { thaw(p); destroy(p); continue; }
++      if (p.frozen) { thaw(p); destroy(p, groupClear); continue; }
+@@ -2633 +2686 @@
+-      else destroy(p);
++      else destroy(p, groupClear);
+@@ -2655,2 +2708,14 @@
 -      await sleep(inShower || direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
 -      p.charge = 0; if (grid[p.r][p.c] === p && !p.fired) { if (p.type === "bomb") rainbowFired = true; trigger(p, next, bees); }
 +      await sleep(inShower ? 120 : direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
@@ -135,19 +162,19 @@
 +        if (inShower) beginShowerEffect();
 +        if (p.type === "bomb") rainbowFired = true;
 +        for (const tile of scoreOnly) {
-+          if (!tile.armed) countSpecial(kind(tile), tile.r, tile.c);
++          if (!tile.armed) countSpecial(kind(tile), tile.r, tile.c, true);
 +          popup(tile.r, tile.c, ppp(), tile.color);
 +          destroy(tile, { noAnim: true, silent: true });
 +        }
 +        trigger(p, next, bees, scoreOnly.length > 0);
 +      }
-@@ -2658 +2716 @@
+@@ -2658 +2723 @@
 -    together = together || rainbowFired;
 +    together = !inShower && (together || rainbowFired);
-@@ -2661 +2719 @@
+@@ -2661 +2726 @@
 -    await sleep(inShower ? 110 : 170);
 +    if (!inShower) await sleep(170);
-@@ -2686,0 +2745,18 @@
+@@ -2686,0 +2752,18 @@
 +  if (inShower) {
 +    for (const { cells, per } of list) {
 +      for (const [r, c] of cells) {
@@ -166,41 +193,41 @@
 +    sfx("crack");
 +    return true;
 +  }
-@@ -2752 +2828,2 @@
+@@ -2752 +2835,2 @@
 -  const fl = { sx: c, sy: r, ex: tg[1], ey: tg[0], t0: T(), dur: BEE_MS, color };
 +  const flightMs = inShower ? SHOWER_EFFECT_MS : BEE_MS;
 +  const fl = { sx: c, sy: r, ex: tg[1], ey: tg[0], t0: T(), dur: fastFwd ? flightMs / 3 : flightMs, color };
-@@ -2754,2 +2831,2 @@
+@@ -2754,2 +2838,2 @@
 -  await sleep(BEE_MS);
 -  fxRing(tg[0], tg[1], 0, color); burst(tg[0], tg[1], color, 8, 1.4); sfx("sting");
 +  await sleep(flightMs);
 +  fxRing(tg[0], tg[1], 0, color); if (!inShower) burst(tg[0], tg[1], color, 8, 1.4); sfx("sting");
-@@ -2861,0 +2939 @@
+@@ -2861,0 +2946 @@
 +function staysInShower(p) { return inShower && p && p.type !== "normal"; }
-@@ -2874 +2952,3 @@
+@@ -2874 +2959,3 @@
 -        const p = grid[y][c]; if (!p) continue;
 +        const p = grid[y][c]; if (!p || staysInShower(p)) continue;
 +        // Falling flowers pass through stationary shower specials without replacing them.
 +        while (staysInShower(grid[write][c])) write--;
-@@ -2879 +2959 @@
+@@ -2879 +2966 @@
 -        for (let y = write; y >= top; y--) { const p = newPiece(refillColor(y, c)); grid[y][c] = p; p.r = y; p.c = c; p.px = c; p.py = top - 1 - spawnK[c]++ * 1.15; p.falling = true; moved = true; ch = true; }
 +        for (let y = write; y >= top; y--) { if (staysInShower(grid[y][c])) continue; const p = newPiece(refillColor(y, c)); grid[y][c] = p; p.r = y; p.c = c; p.px = c; p.py = top - 1 - spawnK[c]++ * 1.15; p.falling = true; moved = true; ch = true; }
-@@ -2886 +2966 @@
+@@ -2886 +2973 @@
 -    if (!src || src.frozen || grid[nr][nc] || mask[nr][nc] !== 1 || ground[nr][nc] > 0) return;
 +    if (!src || src.frozen || staysInShower(src) || grid[nr][nc] || mask[nr][nc] !== 1 || ground[nr][nc] > 0) return;
-@@ -2977 +3057 @@
+@@ -2977 +3064 @@
 -      const p = grid[r - 1][sc]; if (!p || p.frozen || used.has(p.id)) continue;
 +      const p = grid[r - 1][sc]; if (!p || p.frozen || staysInShower(p) || used.has(p.id)) continue;
-@@ -3011 +3091 @@
+@@ -3011 +3098 @@
 -    const armed = []; eachPiece((p, r, c) => { if (p.armed) armed.push([r, c]); });
 +    const armed = []; eachPiece((p, r, c) => { if (!inShower && p.armed) armed.push([r, c]); });
-@@ -3014 +3094 @@
+@@ -3014 +3101 @@
 -    if (groups.length) { cascades++; comboLevel = Math.max(comboLevel, cascades); chainCount += swapCells ? 0 : groups.length; if (inShower) celebrate(Math.min(9, showerHeat + cascades)); else if (cascades >= 2) celebrate(Math.min(9, cascades)); }
 +    if (groups.length) { cascades++; comboLevel = Math.max(comboLevel, cascades); chainCount += swapCells ? 0 : groups.length; if (!inShower && cascades >= 2) celebrate(Math.min(9, cascades)); }
-@@ -3160 +3240 @@
+@@ -3160 +3247 @@
 -let showerHeat = 0, showerT0 = 0;
 +let showerT0 = 0;
-@@ -3170 +3250,19 @@
+@@ -3170 +3257,19 @@
 -async function popAllSpecials() {   // every power-up on the board goes off — one at a time, letting the flowers fall in between
 +const SHOWER_EFFECT_MS = 500;
 +let showerEffectAt = -Infinity;
@@ -221,7 +248,7 @@
 +  shocks = [];
 +}
 +async function popAllSpecials() {
-@@ -3172,2 +3270,11 @@
+@@ -3172,2 +3277,11 @@
 -    const sp = []; eachPiece((p, r, c) => { if (p.type !== "normal" && !p.frozen) { p.shield = false; sp.push(p); } });
 -    if (!sp.length) break;
 +    const specials = [];
@@ -235,7 +262,7 @@
 +    // Lit-up power-ups go first, then the oldest. A rainbow hit only queues others.
 +    specials.sort((a, b) => (a.marked || 1e15) - (b.marked || 1e15) || (a.pop || 0) - (b.pop || 0));
 +    const p = specials[0];
-@@ -3175,16 +3282,13 @@
+@@ -3175,16 +3289,13 @@
 -    // power-ups touching each other team up into their combo effect instead of going off alone
 -    let pair = null;
 -    for (const a of sp) { for (const [dr, dc] of [[0, 1], [1, 0]]) { const b = grid[a.r + dr] && grid[a.r + dr][a.c + dc]; if (b && b.type !== "normal" && !b.frozen && !b.fired) { pair = [a, b]; break; } } if (pair) break; }
@@ -265,38 +292,38 @@
 +    p.marked = 0;
 +    await blast([[p.r, p.c]], false, true, group.slice(1));
 +    await resolve(null);
-@@ -3197 +3301 @@
+@@ -3197 +3308 @@
 -  inShower = true; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
 +  inShower = true; showerEffectAt = -Infinity; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
-@@ -3200 +3304 @@
+@@ -3200 +3311 @@
 -  const left = moves; showerHeat = Math.min(6, 1 + Math.floor(left / 3));
 +  const left = moves;
-@@ -3202 +3306 @@
+@@ -3202 +3313 @@
 -  if (left > 0) { praise("Flower Shower!"); celebrate(showerHeat + 1); }
 +  if (left > 0) praise("Flower Shower!");
-@@ -3205,2 +3309 @@
+@@ -3205,2 +3316 @@
 -  // first, set off the power-ups already on the board (one by one, ~0.25 s apart) before any moves turn into new ones.
 -  // Same rhythm as the converted moves: let the last match settle, light each one up in turn, then fire them in sequence.
 +  // Finish the previous cascade before firing the existing power-ups.
-@@ -3208,4 +3310,0 @@
+@@ -3208,4 +3317,0 @@
 -  for (let w = 0; w < 30 && !showerSkip && (drift.length || parts.some(q => q.kind === "petal")); w++) await sleep(80);
 -  { const ex = []; eachPiece(p => { if (p.type !== "normal") ex.push(p); });
 -    for (const p of ex) { if (showerSkip) break; p.pop = T(); sparkleAt(p.r, p.c, 8); sfx("convert", ex.indexOf(p)); await sleep(140); }
 -    if (ex.length) await sleep(250); }
-@@ -3213,2 +3312 @@
+@@ -3213,2 +3319 @@
 -  // let the petals settle before the leftover moves turn into new power-ups
 -  for (let w = 0; w < 50 && !showerSkip && (drift.length || parts.some(q => q.kind === "petal")); w++) await sleep(80);
 +  await waitForShowerBeat();
-@@ -3228 +3326 @@
+@@ -3228 +3333 @@
 -    p.pop = T(); sparkleAt(p.r, p.c, 8);
 +    p.pop = T();
-@@ -3230,3 +3328,2 @@
+@@ -3230,3 +3335,2 @@
 -    await sleep(150);
 -  }
 -  const tStart = T();
 +    await sleep(250);
 +  }
-@@ -3245,0 +3343,13 @@
+@@ -3245,0 +3350,13 @@
 +  await waitForShowerBeat();
 +  if (left > 0 && !showerSkip && !showerTurbo) {
 +    beginShowerEffect();
@@ -310,7 +337,7 @@
 +    sfx("fever", 3);
 +    await waitForShowerBeat();
 +  }
-@@ -3247,13 +3357,6 @@
+@@ -3247,13 +3364,6 @@
 -  // finale: one firework per move that was left (up to 12)
 -  if (showerTurbo) { showerTurbo = false; turboCover(false); fx = []; flyers = []; sfx("win"); }
 -  if (left > 0 && !showerSkip && !showerTurbo) {
@@ -330,12 +357,12 @@
 +    sfx("win");
 +  }
 +  inShower = false; luckyRefill = 0; showerCalm = false; celebrateEnd();
-@@ -3555,0 +3659,19 @@
+@@ -3555,0 +3666,19 @@
 +const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alxmobileapps.flowerfever";
 +let ratingPromptSeen = false;
 +function afterRatedMilestone(next) {
 +  const native = window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === "android";
-+  if (!native || save.unlocked < 6 || ratingPromptSeen) { next(); return; }
++  if (!native || save.unlocked < 13 || ratingPromptSeen) { next(); return; }
 +  try { if (localStorage.getItem("ff.ratingPromptSeen")) { next(); return; } } catch (e) {}
 +  ratingPromptSeen = true;
 +  try { localStorage.setItem("ff.ratingPromptSeen", "1"); } catch (e) {}
@@ -350,30 +377,30 @@
 +    };
 +  });
 +}
-@@ -3566 +3688 @@
+@@ -3566 +3695 @@
 -  save.adWins = (save.adWins || 0) + 1;
 +  countFinishedRound();
-@@ -3595,0 +3718 @@
+@@ -3595,0 +3725 @@
 +  const leaveWin = next => wasCh ? next() : afterRatedMilestone(next);
-@@ -3613 +3736 @@
+@@ -3613 +3743 @@
 -      const n = el.querySelector("#next"); if (n) n.onclick = () => startLevel(levelIdx + 1);
 +      const n = el.querySelector("#next"); if (n) n.onclick = () => leaveWin(() => startLevel(levelIdx + 1));
-@@ -3615 +3738 @@
+@@ -3615 +3745 @@
 -      el.querySelector("#again").onclick = () => startLevel(levelIdx, wasCh);
 +      el.querySelector("#again").onclick = () => leaveWin(() => startLevel(levelIdx, wasCh));
-@@ -3617 +3740 @@
+@@ -3617 +3747 @@
 -      el.querySelector("#wHome").onclick = showHome;
 +      el.querySelector("#wHome").onclick = () => leaveWin(showHome);
-@@ -3657 +3780 @@
+@@ -3657 +3787 @@
 -  if (!again) { track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
 +  if (!again) { countFinishedRound(); track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
-@@ -4461 +4584 @@
+@@ -4461 +4591 @@
 -let homeOpen = false, homeRaf = 0;
 +let homeOpen = false, homeRaf = 0, panoramaIntroPlayed = false;
-@@ -4523 +4646 @@
+@@ -4523 +4653 @@
 -    <div class="h3map"><div class="h3scroll"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div>
 +    <div class="h3map"><div class="h3scroll"><div class="h3track"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div></div>
-@@ -4539 +4662,35 @@
+@@ -4539 +4669,35 @@
 -  const NG = PLAN_GARDENS.length;
 +  const sc = el.querySelector(".h3scroll"), trackEl = el.querySelector(".h3track"), strip = el.querySelector(".h3strip");
 +  // Mirror just the outer edge where centering the first or last pin needs more artwork.
@@ -410,15 +437,15 @@
 +      : rightEnd + (center - rightEnd) * (k * k * (3 - 2 * k));
 +    if (k < 1) homeRaf = requestAnimationFrame(animatePanorama);
 +  };
-@@ -4541 +4698,3 @@
+@@ -4541 +4705,3 @@
 -    const sc = el.querySelector(".h3scroll"), vw = sc.clientWidth; if (!vw) return;
 +    if (!el.isConnected) return;
 +    const vw = sc.clientWidth;
 +    if (!vw) return;
-@@ -4543 +4702 @@
+@@ -4543 +4709 @@
 -      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
 +      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3");
-@@ -4547 +4706,16 @@
+@@ -4547 +4713,16 @@
 -      strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
 +      const artWidth = vw * 7.20530387 * (base + mx) / Math.max(1, base);
 +      const pin = PANO_POS[gi][2] / 100 * artWidth;
@@ -436,7 +463,7 @@
 +      trackEl.style.width = (artWidth + leftPad + rightPad) + "px";
 +      center = leftPad + pin - vw / 2;
 +      rightEnd = Math.max(0, leftPad + artWidth - vw);
-@@ -4553 +4727,9 @@
+@@ -4553 +4734,9 @@
 -    if (!sc.dataset.placed) { sc.dataset.placed = 1; sc.scrollLeft = PANO_POS[gi][2] / 100 * sc.scrollWidth - vw / 2; }
 +    if (!panoramaIntroPlayed) {
 +      panoramaIntroPlayed = true;
@@ -447,22 +474,22 @@
 +      }
 +    }
 +    if (!interrupted && (introStart === null || performance.now() - introStart >= introDuration)) sc.scrollLeft = center;
-@@ -4556 +4738 @@
+@@ -4556 +4745 @@
 -  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh) showStart(); else startLevel(next); };
 +  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh && !interstitialDue(false)) showStart(); else startLevel(next); };
-@@ -4658 +4840 @@
+@@ -4658 +4847 @@
 -    if (["#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
 +    if (["#offerLater", "#rateLater", "#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
-@@ -4819 +5001 @@
+@@ -4819 +5008 @@
 -  const want = adsAllowed() && !homeOpen && !mapOpen && (booted || !!gardenOpen);
 +  const want = adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted));
-@@ -4826 +5008 @@
+@@ -4826 +5015 @@
 -  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => {});
 +  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => false);
-@@ -4832 +5014 @@
+@@ -4832 +5021 @@
 -    btn.onclick = () => { el.remove(); res(); };
 +    btn.onclick = () => { el.remove(); res(true); };
-@@ -4834,0 +5017,9 @@
+@@ -4834,0 +5024,9 @@
 +let roundCounted = false, interstitialPending = false;
 +function countFinishedRound() {
 +  if (roundCounted) return;
@@ -472,7 +499,7 @@
 +function interstitialDue(asChallenge) {
 +  return booted && adsAllowed() && !asChallenge && (save.adRounds ?? save.adWins ?? 0) >= 5;
 +}
-@@ -4835,0 +5027,16 @@
+@@ -4835,0 +5034,16 @@
 +  if (interstitialPending) return;
 +  if (interstitialDue(asChallenge)) {
 +    save.adRounds = 0;
@@ -489,8 +516,8 @@
 +    });
 +    return;
 +  }
-@@ -4837,2 +5043,0 @@
+@@ -4837,2 +5050,0 @@
 -  // between-level ad: after every 5 levels won (never for "No ads" buyers, never when the app first opens)
 -  if (booted && adsAllowed() && i >= 20 && !challenge && (save.adWins || 0) >= 5) { save.adWins = 0; persist(); busy = true; showInterstitial().then(() => startLevel(i, asChallenge)); return; }
-@@ -4839,0 +5045 @@
+@@ -4839,0 +5052 @@
 +  roundCounted = false;
