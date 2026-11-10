@@ -202,7 +202,10 @@
       get user() { return user; },
       onChange(f) { listeners.push(f); },
       async signIn() {
-        const r = await FAuth.signInWithGoogle();
+        // the classic Google account picker; the newer Credential Manager answered "No credentials available" on real phones
+        let r;
+        try { r = await FAuth.signInWithGoogle({ useCredentialManager: false }); }
+        catch (e) { if (/cancel/i.test(String(e && e.message))) throw e; r = await FAuth.signInWithGoogle(); }
         setUser(r && r.user); return user;
       },
       async signOut() { try { await FAuth.signOut(); } catch (e) {} setUser(null); },
