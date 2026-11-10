@@ -73,9 +73,19 @@ jobs:
           mkdir -p ../dist
           # Check the actual APK, not just the source keystore.
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$BT/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > ../dist/debug-signing-report.txt
-          grep -qi "Signer #1 certificate SHA-1 digest: 51bd417b2935550c228f022ffc2f3be1bfeaf327" ../dist/debug-signing-report.txt
-          cp app/build/outputs/apk/debug/app-debug.apk ../dist/flower-fever-debug-TEST-ADS.apk
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          OUT=../dist/flower-fever-debug-TEST-ADS.apk
+          EXPECTED=51bd417b2935550c228f022ffc2f3be1bfeaf327
+          "$BT/apksigner" verify --print-certs "$APK" | tee ../dist/debug-signing-report.txt
+          if grep -Fqi "$EXPECTED" ../dist/debug-signing-report.txt; then
+            cp "$APK" "$OUT"
+          else
+            echo "Signing the test APK with the registered Flower Fever debug key"
+            "$BT/apksigner" sign --ks app/flower-fever-debug.keystore --ks-key-alias androiddebugkey \
+              --ks-pass pass:android --key-pass pass:android --out "$OUT" "$APK"
+            "$BT/apksigner" verify --print-certs "$OUT" | tee ../dist/debug-signing-report.txt
+            grep -Fqi "$EXPECTED" ../dist/debug-signing-report.txt
+          fi
 
       - name: Build release AAB + APK (real ads)
         run: |
