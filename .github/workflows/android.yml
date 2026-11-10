@@ -62,8 +62,7 @@ jobs:
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
         run: |
-          # a fixed debug key (registered in Firebase) so Google sign-in works in the test APK
-          mkdir -p ~/.android && cp android-keys/debug.keystore ~/.android/debug.keystore
+          # android-setup.py explicitly selects the registered debug signing key.
           sed -i "s/testing: false/testing: true/" www/ads-config.js
           npx cap sync android
           cd android
@@ -71,6 +70,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
           mkdir -p ../dist
+          # Check the actual APK, not just the source keystore.
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > ../dist/debug-signing-report.txt
+          grep -qi "Signer #1 certificate SHA-1 digest: 51bd417b2935550c228f022ffc2f3be1bfeaf327" ../dist/debug-signing-report.txt
           cp app/build/outputs/apk/debug/app-debug.apk ../dist/flower-fever-debug-TEST-ADS.apk
 
       - name: Build release AAB + APK (real ads)

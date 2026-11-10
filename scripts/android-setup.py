@@ -82,6 +82,31 @@ if pathlib.Path("android/app/google-services.json").exists():
 gp = pathlib.Path("android/gradle.properties")
 gp.write_text(gp.read_text().rstrip("\n") + "\nandroid.suppressUnsupportedCompileSdk=36\n")
 
+
+# Use the registered debug key explicitly: hosted runners may set ANDROID_USER_HOME,
+# so copying only to ~/.android/debug.keystore does not control Gradle's signing key.
+import shutil
+shutil.copyfile("android-keys/debug.keystore", "android/app/flower-fever-debug.keystore")
+debug_signing = """
+android {
+    signingConfigs {
+        debug {
+            storeFile file('flower-fever-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+"""
+build_gradle = pathlib.Path("android/app/build.gradle")
+build_gradle.write_text(build_gradle.read_text() + debug_signing)
+
 # 5) Version from the GitHub run number
 vc = os.environ.get("VERSION_CODE", "1")
 edit("android/app/build.gradle", lambda s: re.sub(r'versionName "[^"]*"', f'versionName "1.0.{vc}"',
