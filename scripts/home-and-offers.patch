@@ -1,0 +1,211 @@
+--- a/www/index.html
++++ b/www/index.html
+@@ -778,0 +779 @@
++.h3track{position:relative;height:100%}
+@@ -2529,0 +2531 @@
++  if (p.noAds && save.noAds) return true;
+@@ -2536,0 +2539,49 @@
++const gemPackPrice = pack => window.FlowerFeverStore?.prices?.[pack.id] || pack.price;
++const gemPackCard = p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${gemPackPrice(p)}</i></button>`;
++const REMOVE_ADS_PACK = GEM_PACKS.find(pack => pack.noAds);
++
++async function purchaseGemPack(pack) {
++  if (pack.noAds && save.noAds) return false;
++  if (!await buyPack(pack)) return false;
++  if (pack.noAds && save.noAds) return true;
++  track("purchase", { id: pack.id, price: pack.price });
++  addGems(pack.n);
++  if (pack.noAds) {
++    save.noAds = true;
++    syncBanner();
++  }
++  if (pack.lives) save.freeLife = freeLives() + pack.lives;
++  if (pack.starter) save.starterBought = true;
++  persist();
++  sfx("win");
++  return true;
++}
++
++function showRemoveAdsOffer(next) {
++  if (!adsAllowed()) { next(); return; }
++  show(`<div class="ribbon">Remove ads</div><h2>Play without interruptions</h2>
++    <p>Remove banner and interstitial ads and get 100 diamonds.</p>
++    <div class="gempacks" style="grid-template-columns:minmax(0,160px);justify-content:center">${gemPackCard(REMOVE_ADS_PACK)}</div>
++    <p id="offerStatus" role="status" hidden></p>
++    <div class="btns"><button class="btn alt" id="offerLater">Continue playing</button></div>`, el => {
++    const buy = el.querySelector(".gempack"), later = el.querySelector("#offerLater");
++    const status = el.querySelector("#offerStatus");
++    let left = false;
++    const finish = () => {
++      if (left) return;
++      left = true;
++      next();
++    };
++    later.onclick = finish;
++    buy.onclick = async () => {
++      buy.disabled = true;
++      status.hidden = true;
++      if (await purchaseGemPack(REMOVE_ADS_PACK)) { finish(); return; }
++      if (left) return;
++      status.textContent = "Purchase not completed.";
++      status.hidden = false;
++      buy.disabled = false;
++    };
++  });
++}
++
+@@ -2542 +2592,0 @@
+-  const price = p => (window.FlowerFeverStore && window.FlowerFeverStore.prices && window.FlowerFeverStore.prices[p.id]) || p.price;
+@@ -2550 +2600 @@
+-    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(p => `<button class="gempack${p.noAds ? " noads" : ""}${p.starter ? " starter" : ""}" data-i="${GEM_PACKS.indexOf(p)}">${p.tag ? `<em>${p.tag}</em>` : ""}<span class="gpic">${GEM_SVG.repeat(p.n >= 150 ? 3 : p.n >= 50 ? 2 : 1)}</span><b>${p.n}</b><small>diamonds</small>${p.noAds ? `<strong>+ No forced ads</strong>` : p.lives ? `<strong>+ ${p.lives} free lifelines</strong>` : ""}<i>${price(p)}</i></button>`).join("")}</div>
++    <div class="gempacks">${GEM_PACKS.filter(p => !(p.noAds && save.noAds) && !(p.starter && !starterOpen())).map(gemPackCard).join("")}</div>
+@@ -2556,2 +2606,8 @@
+-    el.querySelectorAll(".gempack").forEach(b => b.onclick = async () => { const p = GEM_PACKS[+b.dataset.i]; if (await buyPack(p)) { track("purchase", { id: p.id, price: p.price }); addGems(p.n); if (p.noAds) { save.noAds = true; try { window.FlowerFeverAds && window.FlowerFeverAds.hideBanner && window.FlowerFeverAds.hideBanner(); } catch (e) {} }
+-      if (p.lives) save.freeLife = freeLives() + p.lives; if (p.starter) save.starterBought = true; persist(); sfx("win"); } done(); });
++    el.querySelectorAll(".gempack").forEach(button => button.onclick = async () => {
++      if (el.dataset.buying) return;
++      el.dataset.buying = "1";
++      button.disabled = true;
++      try { await purchaseGemPack(GEM_PACKS[+button.dataset.i]); }
++      finally { delete el.dataset.buying; }
++      if (!overlay.hidden && el.contains(button)) done();
++    });
+@@ -3555,0 +3612,19 @@
++const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alxmobileapps.flowerfever";
++let ratingPromptSeen = false;
++function afterRatedMilestone(next) {
++  const native = window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === "android";
++  if (!native || save.unlocked < 6 || ratingPromptSeen) { next(); return; }
++  try { if (localStorage.getItem("ff.ratingPromptSeen")) { next(); return; } } catch (e) {}
++  ratingPromptSeen = true;
++  try { localStorage.setItem("ff.ratingPromptSeen", "1"); } catch (e) {}
++  show(`<div class="ribbon">Rate Flower Fever</div><h2>Leave a review</h2>
++    <p>Share your experience on Google Play.</p><div class="btns">
++    <button class="btn" id="ratePlay">Rate in Play Store</button>
++    <button class="btn alt" id="rateLater">Not now</button></div>`, el => {
++    el.querySelector("#rateLater").onclick = next;
++    el.querySelector("#ratePlay").onclick = () => {
++      openLink(PLAY_STORE_URL);
++      next();
++    };
++  });
++}
+@@ -3566 +3641 @@
+-  save.adWins = (save.adWins || 0) + 1;
++  countFinishedRound();
+@@ -3595,0 +3671 @@
++  const leaveWin = next => wasCh ? next() : afterRatedMilestone(next);
+@@ -3613 +3689 @@
+-      const n = el.querySelector("#next"); if (n) n.onclick = () => startLevel(levelIdx + 1);
++      const n = el.querySelector("#next"); if (n) n.onclick = () => leaveWin(() => startLevel(levelIdx + 1));
+@@ -3615 +3691 @@
+-      el.querySelector("#again").onclick = () => startLevel(levelIdx, wasCh);
++      el.querySelector("#again").onclick = () => leaveWin(() => startLevel(levelIdx, wasCh));
+@@ -3617 +3693 @@
+-      el.querySelector("#wHome").onclick = showHome;
++      el.querySelector("#wHome").onclick = () => leaveWin(showHome);
+@@ -3657 +3733 @@
+-  if (!again) { track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
++  if (!again) { countFinishedRound(); track("level_fail", { level: levelIdx + 1, continues: continued || 0, challenge }); sfx("lose"); setTimeout(() => say("So close!"), 950); save.fails = save.fails || {}; save.fails[levelIdx] = (save.fails[levelIdx] || 0) + 1; persist(); }
+@@ -4461 +4537 @@
+-let homeOpen = false, homeRaf = 0;
++let homeOpen = false, homeRaf = 0, panoramaIntroPlayed = false;
+@@ -4523 +4599 @@
+-    <div class="h3map"><div class="h3scroll"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div>
++    <div class="h3map"><div class="h3scroll"><div class="h3track"><div class="h3strip">${HOME_PANELS.map((src, i) => `<img class="h3pano" alt="" draggable="false" src="${src}" style="left:${i * HOME_PANEL_STEP}%">`).join("")}<div class="h3labels"></div></div></div></div></div>
+@@ -4539 +4615,20 @@
+-  const NG = PLAN_GARDENS.length;
++  const sc = el.querySelector(".h3scroll"), trackEl = el.querySelector(".h3track"), strip = el.querySelector(".h3strip");
++  let interrupted = false, introStart = null, center = 0, rightEnd = 0;
++  const stopPanorama = () => {
++    interrupted = true;
++    panoramaIntroPlayed = true;
++    cancelAnimationFrame(homeRaf);
++  };
++  for (const event of ["pointerdown", "wheel", "keydown"]) {
++    el.addEventListener(event, stopPanorama, { capture: true, passive: true, once: true });
++  }
++  const animatePanorama = now => {
++    if (interrupted || !el.isConnected) return;
++    if (introStart === null) introStart = now;
++    const elapsed = now - introStart;
++    const outbound = 3500, pause = 200, inbound = 1600;
++    const k = Math.min(1, Math.max(0, (elapsed - outbound - pause) / inbound));
++    sc.scrollLeft = elapsed < outbound ? rightEnd * elapsed / outbound
++      : rightEnd + (center - rightEnd) * (k * k * (3 - 2 * k));
++    if (k < 1) homeRaf = requestAnimationFrame(animatePanorama);
++  };
+@@ -4541 +4636,3 @@
+-    const sc = el.querySelector(".h3scroll"), vw = sc.clientWidth; if (!vw) return;
++    if (!el.isConnected) return;
++    const vw = sc.clientWidth;
++    if (!vw) return;
+@@ -4543 +4640 @@
+-      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3"), strip = el.querySelector(".h3strip");
++      const map = el.querySelector(".h3map"), h3 = el.querySelector(".h3");
+@@ -4547 +4644,9 @@
+-      strip.style.setProperty("width", (720.530387 * (base + mx) / base) + "%", "important");
++      const artWidth = vw * 7.20530387 * (base + mx) / Math.max(1, base);
++      const pin = PANO_POS[gi][2] / 100 * artWidth;
++      const leftPad = Math.max(0, vw / 2 - pin);
++      const rightPad = Math.max(0, vw / 2 - (artWidth - pin));
++      strip.style.setProperty("width", artWidth + "px", "important");
++      strip.style.marginLeft = leftPad + "px";
++      trackEl.style.width = (artWidth + leftPad + rightPad) + "px";
++      center = leftPad + pin - vw / 2;
++      rightEnd = Math.max(0, leftPad + artWidth - vw);
+@@ -4553 +4658,9 @@
+-    if (!sc.dataset.placed) { sc.dataset.placed = 1; sc.scrollLeft = PANO_POS[gi][2] / 100 * sc.scrollWidth - vw / 2; }
++    if (!panoramaIntroPlayed) {
++      panoramaIntroPlayed = true;
++      if (!reduceMotion) {
++        sc.scrollLeft = 0;
++        homeRaf = requestAnimationFrame(animatePanorama);
++        return;
++      }
++    }
++    if (!interrupted && (introStart === null || performance.now() - introStart >= 5300)) sc.scrollLeft = center;
+@@ -4556 +4669 @@
+-  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh) showStart(); else startLevel(next); };
++  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh && !interstitialDue(false)) showStart(); else startLevel(next); };
+@@ -4658 +4771 @@
+-    if (["#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
++    if (["#offerLater", "#rateLater", "#gBack", "#llClose", "#lfNo", "#sBack", "#cBack", "#lvBack", "#back", "#oNo", "#cfKeep", "#lvKeep", "#pResume", "#prDone", "#sDone", "#rOk", "#pOk", "#cOk", "#aOk", "#gok", "#gok2", "#sHome", "#lHome", "#wHome"].some(tap)) return true;
+@@ -4826 +4939 @@
+-  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => {});
++  if (A && typeof A.showInterstitial === "function") return Promise.resolve().then(() => A.showInterstitial()).catch(() => false);
+@@ -4832 +4945 @@
+-    btn.onclick = () => { el.remove(); res(); };
++    btn.onclick = () => { el.remove(); res(true); };
+@@ -4834,0 +4948,9 @@
++let roundCounted = false, interstitialPending = false;
++function countFinishedRound() {
++  if (roundCounted) return;
++  roundCounted = true;
++  save.adRounds = (save.adRounds ?? save.adWins ?? 0) + 1;
++}
++function interstitialDue(asChallenge) {
++  return booted && adsAllowed() && !asChallenge && (save.adRounds ?? save.adWins ?? 0) >= 5;
++}
+@@ -4835,0 +4958,16 @@
++  if (interstitialPending) return;
++  if (interstitialDue(asChallenge)) {
++    save.adRounds = 0;
++    persist();
++    busy = interstitialPending = true;
++    hide();
++    const next = () => {
++      interstitialPending = false;
++      startLevel(i, asChallenge);
++    };
++    showInterstitial().then(shown => {
++      if (shown && typeof window.FlowerFeverStore?.buy === "function") showRemoveAdsOffer(next);
++      else next();
++    });
++    return;
++  }
+@@ -4837,2 +4974,0 @@
+-  // between-level ad: after every 5 levels won (never for "No ads" buyers, never when the app first opens)
+-  if (booted && adsAllowed() && i >= 20 && !challenge && (save.adWins || 0) >= 5) { save.adWins = 0; persist(); busy = true; showInterstitial().then(() => startLevel(i, asChallenge)); return; }
+@@ -4839,0 +4976 @@
++  roundCounted = false;

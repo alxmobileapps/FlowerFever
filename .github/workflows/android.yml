@@ -62,6 +62,7 @@ jobs:
           git apply scripts/board-webgl.patch
           git apply scripts/celebration-polish.patch
           git apply scripts/webgl-effects.patch
+          git apply --unidiff-zero scripts/home-and-offers.patch
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)

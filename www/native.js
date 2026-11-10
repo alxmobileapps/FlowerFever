@@ -60,11 +60,28 @@
       showBanner: () => banner.show(),
       hideBanner: () => banner.hide(),
       async showInterstitial() {
-        if (!interReady) { loadInter(); return; }
+        if (!interReady) { loadInter(); return false; }
         interReady = false;
-        const closed = once([['interstitialAdDismissed', 1], ['interstitialAdFailedToShow', 0]], 120000);
-        quiet(true); try { await AdMob.showInterstitial(); await closed; } catch (e) { log('inter', e); } quiet(false);
-        loadInter();
+        const listeners = [];
+        let timer;
+        try {
+          let settle;
+          const closed = new Promise(resolve => { settle = resolve; });
+          listeners.push(await AdMob.addListener('interstitialAdDismissed', () => settle(true)));
+          listeners.push(await AdMob.addListener('interstitialAdFailedToShow', () => settle(false)));
+          timer = setTimeout(() => settle(false), 120000);
+          quiet(true);
+          await AdMob.showInterstitial();
+          return await closed;
+        } catch (e) {
+          log('inter', e);
+          return false;
+        } finally {
+          clearTimeout(timer);
+          for (const listener of listeners) Promise.resolve(listener.remove()).catch(() => {});
+          quiet(false);
+          loadInter();
+        }
       },
       async showRewarded(kind) {
         if (rewardBusy) return false;   // a second tap while the ad is loading
@@ -136,7 +153,7 @@
       .finished(t => {
         (t.products || []).forEach(p => {
           if (waiting[p.id]) { const res = waiting[p.id]; delete waiting[p.id]; markSeen(t.transactionId); res(true); }
-          else if (prods.consumable.includes(p.id) && !seen(t.transactionId)) {
+          else if ((prods.consumable.includes(p.id) || p.id === 'noads100') && !seen(t.transactionId)) {
             // paid earlier but never delivered (app closed during the purchase): give it now
             try { if (window.FlowerFeverGrant && window.FlowerFeverGrant(p.id)) markSeen(t.transactionId); } catch (e) {}
           }
@@ -150,11 +167,11 @@
 
     storeApi.buy = id => new Promise(async res => {
       const p = store.get(id, Platform.GOOGLE_PLAY), offer = p && p.getOffer();
-      if (!offer) { res(false); return; }
+      if (!offer || waiting[id]) { res(false); return; }
       waiting[id] = res;
-      const err = await offer.order();
+      const err = await Promise.resolve().then(() => offer.order()).catch(() => true);
       if (err) { delete waiting[id]; res(false); }   // cancelled or failed
-      setTimeout(() => { if (waiting[id]) { delete waiting[id]; res(false); } }, 10 * 60 * 1000);
+      setTimeout(() => { if (waiting[id] === res) { delete waiting[id]; res(false); } }, 10 * 60 * 1000);
     });
     storeApi.restore = async () => {
       try { await store.restorePurchases(); } catch (e) {}
