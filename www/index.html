@@ -3043,6 +3043,7 @@ let inShower = false, bigShown = 0, roundMaxCascade = 0, chainCount = 0;   // ch
 /* ============ Turn flow ============ */
 async function trySwap(r1, c1, r2, c2, forced = false) {
   if (busy) return;
+  if (!forced && moves <= 0 && !goalsDone()) { busy = true; showLose(true); return; }   // never play on with no moves left
   const a = grid[r1][c1], b = grid[r2][c2]; if (!a || !b) return;
   if (a.frozen || b.frozen) { const f = a.frozen ? a : b; f.nope = T(); sfx("bad"); selected = null; return; }
   busy = true; selected = null; hint = null; lastInput = T(); comboLevel = 0; bigShown = 0; chainCount = 0;
@@ -4544,7 +4545,7 @@ function showHome() {
     if (!sc.dataset.placed) { sc.dataset.placed = 1; sc.scrollLeft = PANO_POS[gi][2] / 100 * sc.scrollWidth - vw / 2; }
   };
   requestAnimationFrame(paint); homeRepaint = paint;
-  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); if (levelIdx !== next || challenge) startLevel(next); else showStart(); };
+  el.querySelector("#hPlay").onclick = () => { if (lives() <= 0) { livesWindow(back, () => { closeHome(); startLevel(next); }); return; } closeHome(); const fresh = L && levelIdx === next && !challenge && movesUsed === 0 && moves === L.moves && score === 0; if (fresh) showStart(); else startLevel(next); };
   const wkb = el.querySelector("#nWeek"); if (wkb) wkb.onclick = () => { closeHome(); startLevel(weeklyLevel(), true); };
   el.querySelector("#nMap").onclick = () => showMap(back, Math.floor(next / 25));
   el.querySelector("#nGarden").onclick = () => showMyGarden(back);
