@@ -112,7 +112,7 @@
 @@ -2655,2 +2701,8 @@
 -      await sleep(inShower || direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
 -      p.charge = 0; if (grid[p.r][p.c] === p && !p.fired) { if (p.type === "bomb") rainbowFired = true; trigger(p, next, bees); }
-+      await sleep(!inShower && direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
++      await sleep(inShower ? 120 : direct ? 200 : charging.length > 1 ? 380 : CHARGE_MS);
 +      p.charge = 0;
 +      if (inShower) await waitForShowerBeat();
 +      if (grid[p.r][p.c] === p && !p.fired) {
@@ -165,7 +165,7 @@
 +let showerT0 = 0;
 @@ -3170 +3241,19 @@
 -async function popAllSpecials() {   // every power-up on the board goes off — one at a time, letting the flowers fall in between
-+const SHOWER_EFFECT_MS = 750;
++const SHOWER_EFFECT_MS = 350;
 +let showerEffectAt = -Infinity;
 +async function waitForShowerBeat() {
 +  if (showerTurbo || showerSkip) return;
@@ -343,7 +343,7 @@
 +    return { edge, img };
 +  };
 +  const startEdge = addEdge("start", HOME_PANELS[0]), endEdge = addEdge("end", HOME_PANELS.at(-1));
-+  const outbound = 9000 / .75, pause = 250, inbound = 6500 / .75;
++  const outbound = 9000 / (.75 * .75), pause = 250, inbound = 6500 / (.75 * .75);
 +  const introDuration = outbound + pause + inbound;
 +  let interrupted = false, introStart = null, center = 0, rightEnd = 0;
 +  const stopPanorama = () => {
