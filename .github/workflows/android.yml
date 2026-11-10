@@ -37,7 +37,8 @@ jobs:
           npm install
           if [ -f google-services.json ]; then
             echo "Firebase config found: adding Google sign-in, cloud save (Firestore) and Analytics"
-            npm install @capacitor-firebase/analytics@^7 @capacitor-firebase/authentication@^7 @capacitor-firebase/firestore@^7 firebase@^11
+            npm install @capacitor-firebase/analytics@^7 @capacitor-firebase/authentication@7.5.0 @capacitor-firebase/firestore@^7 firebase@^11
+            python scripts/patch-google-signin.py
             echo "window.FLOWER_FIREBASE = true;" > www/firebase-config.js
           fi
 

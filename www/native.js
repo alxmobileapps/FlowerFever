@@ -202,11 +202,12 @@
       get user() { return user; },
       onChange(f) { listeners.push(f); },
       async signIn() {
-        // the classic Google account picker; the newer Credential Manager answered "No credentials available" on real phones
-        let r;
-        try { r = await FAuth.signInWithGoogle({ useCredentialManager: false }); }
-        catch (e) { if (/cancel/i.test(String(e && e.message))) throw e; r = await FAuth.signInWithGoogle(); }
-        setUser(r && r.user); return user;
+        // Patched at build time to GetSignInWithGoogleOption: explicit button flow,
+        // including add-account and reauthentication, rather than the bottom sheet.
+        // Preserve errors/cancellation; do not hide them behind a second sign-in attempt.
+        const r = await FAuth.signInWithGoogle({ useCredentialManager: true });
+        if (!r || !r.user || !r.user.uid) throw new Error('Google sign-in returned no user. Please try again.');
+        setUser(r.user); return user;
       },
       async signOut() { try { await FAuth.signOut(); } catch (e) {} setUser(null); },
       async save(data) {
