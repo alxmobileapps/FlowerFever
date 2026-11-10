@@ -125,7 +125,7 @@
 +    together = !inShower && (together || rainbowFired);
 @@ -2661 +2713 @@
 -    await sleep(inShower ? 110 : 170);
-+    await sleep(170);
++    if (!inShower) await sleep(170);
 @@ -2686,0 +2739,18 @@
 +  if (inShower) {
 +    for (const { cells, per } of list) {
@@ -154,18 +154,34 @@
 -  fxRing(tg[0], tg[1], 0, color); burst(tg[0], tg[1], color, 8, 1.4); sfx("sting");
 +  await sleep(flightMs);
 +  fxRing(tg[0], tg[1], 0, color); if (!inShower) burst(tg[0], tg[1], color, 8, 1.4); sfx("sting");
-@@ -3011 +3082 @@
+@@ -2861,0 +2933 @@
++function staysInShower(p) { return inShower && p && p.type !== "normal"; }
+@@ -2874 +2946,3 @@
+-        const p = grid[y][c]; if (!p) continue;
++        const p = grid[y][c]; if (!p || staysInShower(p)) continue;
++        // Falling flowers pass through stationary shower specials without replacing them.
++        while (staysInShower(grid[write][c])) write--;
+@@ -2879 +2953 @@
+-        for (let y = write; y >= top; y--) { const p = newPiece(refillColor(y, c)); grid[y][c] = p; p.r = y; p.c = c; p.px = c; p.py = top - 1 - spawnK[c]++ * 1.15; p.falling = true; moved = true; ch = true; }
++        for (let y = write; y >= top; y--) { if (staysInShower(grid[y][c])) continue; const p = newPiece(refillColor(y, c)); grid[y][c] = p; p.r = y; p.c = c; p.px = c; p.py = top - 1 - spawnK[c]++ * 1.15; p.falling = true; moved = true; ch = true; }
+@@ -2886 +2960 @@
+-    if (!src || src.frozen || grid[nr][nc] || mask[nr][nc] !== 1 || ground[nr][nc] > 0) return;
++    if (!src || src.frozen || staysInShower(src) || grid[nr][nc] || mask[nr][nc] !== 1 || ground[nr][nc] > 0) return;
+@@ -2977 +3051 @@
+-      const p = grid[r - 1][sc]; if (!p || p.frozen || used.has(p.id)) continue;
++      const p = grid[r - 1][sc]; if (!p || p.frozen || staysInShower(p) || used.has(p.id)) continue;
+@@ -3011 +3085 @@
 -    const armed = []; eachPiece((p, r, c) => { if (p.armed) armed.push([r, c]); });
 +    const armed = []; eachPiece((p, r, c) => { if (!inShower && p.armed) armed.push([r, c]); });
-@@ -3014 +3085 @@
+@@ -3014 +3088 @@
 -    if (groups.length) { cascades++; comboLevel = Math.max(comboLevel, cascades); chainCount += swapCells ? 0 : groups.length; if (inShower) celebrate(Math.min(9, showerHeat + cascades)); else if (cascades >= 2) celebrate(Math.min(9, cascades)); }
 +    if (groups.length) { cascades++; comboLevel = Math.max(comboLevel, cascades); chainCount += swapCells ? 0 : groups.length; if (!inShower && cascades >= 2) celebrate(Math.min(9, cascades)); }
-@@ -3160 +3231 @@
+@@ -3160 +3234 @@
 -let showerHeat = 0, showerT0 = 0;
 +let showerT0 = 0;
-@@ -3170 +3241,19 @@
+@@ -3170 +3244,19 @@
 -async function popAllSpecials() {   // every power-up on the board goes off — one at a time, letting the flowers fall in between
-+const SHOWER_EFFECT_MS = 350;
++const SHOWER_EFFECT_MS = 250;
 +let showerEffectAt = -Infinity;
 +async function waitForShowerBeat() {
 +  if (showerTurbo || showerSkip) return;
@@ -184,7 +200,7 @@
 +  shocks = [];
 +}
 +async function popAllSpecials() {
-@@ -3172,2 +3261,11 @@
+@@ -3172,2 +3264,11 @@
 -    const sp = []; eachPiece((p, r, c) => { if (p.type !== "normal" && !p.frozen) { p.shield = false; sp.push(p); } });
 -    if (!sp.length) break;
 +    const specials = [];
@@ -198,7 +214,7 @@
 +    // Lit-up power-ups go first, then the oldest. A rainbow hit only queues others.
 +    specials.sort((a, b) => (a.marked || 1e15) - (b.marked || 1e15) || (a.pop || 0) - (b.pop || 0));
 +    const p = specials[0];
-@@ -3175,16 +3273,6 @@
+@@ -3175,16 +3276,3 @@
 -    // power-ups touching each other team up into their combo effect instead of going off alone
 -    let pair = null;
 -    for (const a of sp) { for (const [dr, dc] of [[0, 1], [1, 0]]) { const b = grid[a.r + dr] && grid[a.r + dr][a.c + dc]; if (b && b.type !== "normal" && !b.frozen && !b.fired) { pair = [a, b]; break; } } if (pair) break; }
@@ -217,10 +233,7 @@
 -    await sleep(60);
 +    p.marked = 0;
 +    await blast([[p.r, p.c]], false, true);
-+    // Drain the waiting specials in place before gravity can collect them below.
-+    let waiting = false;
-+    eachPiece(q => { if (q.type !== "normal" && !q.frozen && !q.fired) waiting = true; });
-+    if (!waiting) await resolve(null);
++    await resolve(null);
 @@ -3197 +3285 @@
 -  inShower = true; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
 +  inShower = true; showerEffectAt = -Infinity; showerT0 = gameNow(); showerCalm = false; showerSkip = false; showerTurbo = false; turboCover(false); bigShown = Math.max(bigShown, 0); chainCount = 0; luckyRefill = showerGen === 3 ? .45 : showerGen === 2 ? .22 : 0;   // ending refills are plain random now (no extra lucky cascades)
@@ -250,7 +263,7 @@
 -    await sleep(150);
 -  }
 -  const tStart = T();
-+    await sleep(320);
++    await sleep(SHOWER_EFFECT_MS);
 +  }
 @@ -3245,0 +3327,13 @@
 +  await waitForShowerBeat();
