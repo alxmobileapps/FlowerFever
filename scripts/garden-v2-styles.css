@@ -1,0 +1,46 @@
+
+#gardenView.garden2{background:linear-gradient(165deg,#e7f7df,#fff5da);z-index:35}
+#gardenView.garden2 .gv{max-width:620px;min-height:0;gap:5px}
+.garden2 .g2top{display:flex;gap:7px;align-items:center;flex:none}
+.garden2 .g2chip{border:0;display:flex;align-items:center;gap:4px;background:white;color:#583a29;border-radius:22px;padding:7px 9px;font:800 15px var(--display);box-shadow:0 3px #d4cdb5;cursor:pointer;white-space:nowrap}
+.garden2 .g2lvl{flex:1;min-width:0;text-align:center;font-size:12px}
+.garden2 .g2scroller{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;border:3px solid white;border-radius:18px;background:#92c261;box-shadow:0 5px 13px #688b5066;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.garden2 .g2stage{position:relative;width:100%;min-height:100%;aspect-ratio:1024 / 1536;contain:layout paint;overflow:hidden;background-size:100% 100%;background-repeat:no-repeat}
+.garden2 .g2thirdpond{position:absolute;left:72%;top:15%;width:17%;height:7.5%;border-radius:50%;box-sizing:border-box;border:6px solid #a9a18c;background:radial-gradient(ellipse at 45% 45%,#75e1d3 0%,#4cb5bb 52%,#277d8b 100%);box-shadow:inset 0 2px 7px #286671,0 2px 4px #27522a77;transform:rotate(-10deg);pointer-events:none;z-index:0}
+.garden2 .g2house{position:absolute;top:1.2%;left:32%;width:36%;height:22%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(0 10px 5px #244c3044);z-index:9}
+.garden2 .g2houseTap{position:absolute;top:1.5%;left:33%;width:34%;height:21%;border:0;background:none;z-index:12;cursor:pointer}
+.garden2 .g2soil{position:absolute;background:radial-gradient(ellipse at 35% 55%,#794523 0%,#613215 67%,#51280f 100%);border:1px solid #a76d3d55;border-radius:20%;pointer-events:none;box-sizing:border-box;opacity:.94}
+.garden2 .g2flower{position:absolute;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 2px #47391e55);z-index:2}
+.garden2 .g2sprout{filter:drop-shadow(0 1px 1px #29422555)}
+.garden2 .g2focus{position:absolute;border:0;border-radius:16px;background:transparent;z-index:8;cursor:pointer;touch-action:manipulation}
+.garden2 .g2focus:focus-visible{outline:3px solid white;box-shadow:0 0 0 5px #44b761}
+.garden2 .g2lock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:900 clamp(7px,1.7vw,11px)/1.2 var(--display);padding:5px 7px;background:#fff6dfeF;border:1px solid #ffc455;border-radius:9px;box-shadow:0 2px 5px #301d2255;color:#7c5128;white-space:nowrap}
+.garden2 .g2ready{position:absolute;right:8%;top:0;background:#55b743;color:#fff;border-radius:100%;font:900 13px var(--display);padding:2px 6px;box-shadow:0 0 0 2px white;animation:fpulse 1.2s infinite}
+.garden2 .g2floating{position:absolute;z-index:7;pointer-events:none;width:7%;animation:g2float 2.8s ease-in-out infinite alternate;filter:drop-shadow(0 2px 2px #1116)}
+.garden2 .g2floating img{display:block;width:100%}
+@keyframes g2float{from{transform:translateY(-3px)}to{transform:translateY(5px) translateX(4px)}}
+.garden2 .g2legend{flex:none;display:flex;gap:6px;justify-content:space-between;align-items:center;color:#52782d;font:800 12px var(--body);text-align:center}
+.garden2 .g2actions{flex:none;display:flex;gap:7px}
+.garden2 .g2actions button{flex:1;min-width:0;font:800 14px var(--display);padding:10px 4px;border-radius:12px;background:#fff;color:#598342;border:2px solid #d5e3bc;cursor:pointer}
+.garden2 .g2actions .primary{color:white;background:linear-gradient(#68c45c,#2fa044);border-color:#258d38}
+.garden2 .g2veil{position:absolute;inset:0;background:#20150f99;z-index:30;display:flex;justify-content:center;align-items:flex-end;padding:10px;box-sizing:border-box}
+.garden2 .g2veil[hidden]{display:none}
+.garden2 .g2panel{max-height:90%;overflow:auto;overscroll-behavior:contain;width:100%;padding:14px;border-radius:20px;background:#fffaf0;box-sizing:border-box;box-shadow:0 8px 22px #20150f55;color:#5c3925;font:700 14px var(--body)}
+.garden2 .g2panel h3{font:900 22px var(--display);text-align:center;margin:0 0 6px;color:#6b365b}
+.garden2 .g2sub{color:#7e6a59;font-size:12px;text-align:center;margin:0 0 8px}
+.garden2 .g2grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;max-height:52vh;overflow:auto;padding:3px}
+.garden2 .g2grid.duo{grid-template-columns:repeat(2,minmax(0,1fr))}
+.garden2 .g2item{border:2px solid #efe0c2;border-radius:14px;background:#fff;text-align:center;padding:5px 3px;color:#6b3e27;font:800 12px var(--display);cursor:pointer;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:3px}
+.garden2 .g2item img{width:100%;max-width:82px;height:62px;object-fit:contain}
+.garden2 .g2item span{font:700 11px var(--body)}
+.garden2 .g2item small{color:#52914e;font-size:11px}
+.garden2 .g2item.locked img{filter:grayscale(1);opacity:.6}
+.garden2 .g2item.poor small{color:#ca684e}
+.garden2 .g2btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:9px}
+.garden2 .g2btns button{padding:10px 13px;border:0;border-radius:12px;background:#53ac55;color:white;font:800 14px var(--display);cursor:pointer}
+.garden2 .g2btns button.alt{background:#e9e3d5;color:#69503d}
+.garden2 .g2btns button:disabled{opacity:.4}
+.garden2 .g2tabs{display:flex;overflow:auto;gap:5px;margin-bottom:6px}
+.garden2 .g2tabs button{background:#e6f0dd;border:1px solid #bcd3ae;border-radius:15px;white-space:nowrap;padding:7px;color:#4c8040;font:800 12px var(--display);cursor:pointer}
+.garden2 .g2tabs button.on{background:#489e47;color:white}
+.garden2 .g2preview{max-height:88px;max-width:100px;object-fit:contain;display:block;margin:0 auto}
