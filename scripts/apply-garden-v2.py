@@ -32,6 +32,27 @@ empty_background = Path("scripts/garden-empty-background.txt").read_text().strip
 js = re.sub(r'const G2_BACKGROUND = "[^"]+";', lambda _: 'const G2_BACKGROUND = "data:image/webp;base64,' + empty_background + '";', js, count=1)
 js = js.replace('<div class="g2legend"><span>🌿 8 beds</span><span>💧 3 ponds</span><span>🌸 138 breeds</span><span>🌳 3 trees</span></div>', '')
 js = js.replace("root.querySelector('.g2legend').title=readyCount+' flowers ready to harvest';", "")
+
+# Fit each sprite inside its actual painted soil cell.
+geometry = """
+G2_SLOTS.filter(s=>s.kind==='ground').forEach(s=>{
+ const bed=Number(s.area.split('-')[1]), row=Number(s.id.match(/_R(\\d)/)[1])-1;
+ const band=Math.floor((bed-1)/2);
+ s.y=[[402,432,462],[540,583,625],[721,773,825],[949,1009,1069]][band][row];
+ s.h=[25,34,42,48][band];
+ s.x+=s.w*.1;s.w*=.8;s.anchor=[s.x+s.w/2,s.y+s.h];
+});
+"""
+if "const G2_GROUND_ORDER =" in js:
+    js = js.replace("const G2_GROUND_ORDER =", geometry + "const G2_GROUND_ORDER =", 1)
+else:
+    js = js.replace("const G2_PLANT_BY_ID =", geometry + "const G2_PLANT_BY_ID =", 1)
+old_image = '<img class="g2flower ${state===\'ready\'?\'\':\'g2sprout\'}" alt="" loading="lazy" src="${src}" style="left:${slot.x/1024*100}%;top:${slot.y/1536*100}%;width:${slot.w/1024*100}%;height:${slot.h/1536*100}%;z-index:${Math.floor(slot.anchor[1])}">'
+new_image = '<svg class="g2flower" viewBox="${state===\'sprout\'?\'0 0 98 70\':state===\'bud\'?\'0 0 122 110\':\'0 0 100 100\'}" style="left:${slot.x/1024*100}%;top:${slot.y/1536*100}%;width:${slot.w/1024*100}%;height:${slot.h/1536*100}%;z-index:${Math.floor(slot.anchor[1])}" aria-hidden="true"><image href="${src}" width="${state===\'ready\'?100:300}" height="${state===\'ready\'?100:state===\'sprout\'?242:255}" preserveAspectRatio="xMidYMid meet"/></svg>'
+js = js.replace(old_image, new_image)
+js = js.replace('<i class="g2thirdpond" aria-hidden="true"></i>', '<svg class="g2thirdpond" viewBox="0 1200 310 215" aria-hidden="true"><image href="${G2_BACKGROUND}" width="1024" height="1536"/></svg>')
+css += "\n.garden2 .g2flower{overflow:hidden}.garden2 .g2thirdpond{left:70%;top:15%;width:22%;height:10%;border:0;background:none;box-shadow:none;transform:none;border-radius:0}\n"
+
 src = game.read_text(encoding="utf-8")
 marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
