@@ -85,6 +85,38 @@ css += """
 .garden2 .g2panel .g2btns button:focus-visible{outline:3px solid #f5c84d;outline-offset:4px}
 """
 
+
+# Gameplay rarity is assigned by flower family, not alphabetic position.
+rarity_families = """
+const G2_FAMILY_TIERS = {
+ ground:[
+ ['daisy','sunflower','tulip','zinnia','cosmos','aster','carnation','chrysanthemum'],
+ ['lavender','pansy','bluebell','hibiscus','camellia'],
+ ['rose','lily','iris','dahlia','foxglove'],
+ ['anthurium','calla-lily','hydrangea','gardenia','peony'],
+ ['bird-of-paradise']
+ ],
+ water:[['water-poppy','arrowhead'],['hardy-water-lily'],['water-iris'],['lotus'],['tropical-water-lily']],
+ hanging:[['trailing-petunia','morning-glory'],['fuchsia'],['dendrobium','phalaenopsis'],['cattleya','wisteria'],['vanda']],
+ tree:[['plumeria','crape-myrtle'],['cherry-blossom','redbud'],['magnolia'],['orchid-tree','tree-form-camellia'],['trumpet-tree']]
+};
+for(const [type,tiers] of Object.entries(G2_FAMILY_TIERS)){
+ const items=G2_FLOWERS.filter(f=>f.type===type);
+ const economics=items.slice().sort((a,b)=>a.cost-b.cost).map(({cost,minutes,gain,xp,level})=>({cost,minutes,gain,xp,level}));
+ const familyOrder=tiers.flat();
+ for(const f of items){
+  const family=f.id.split('__')[0],tier=tiers.findIndex(t=>t.includes(family));
+  if(tier<0)throw new Error('Missing flower rarity: '+f.id);
+  f.rarity=['Common','Uncommon','Rare','Very Rare','Epic'][tier];
+ }
+ items.sort((a,b)=>familyOrder.indexOf(a.id.split('__')[0])-familyOrder.indexOf(b.id.split('__')[0]));
+ items.forEach((f,i)=>Object.assign(f,economics[i]));
+}
+"""
+js = js.replace("const G2_RARITY_RANK =", rarity_families + "const G2_RARITY_RANK =", 1)
+js = js.replace("locked?'🔒 Lv '+x.level:x.rarity+' · +'+x.gain+'🪙'", "x.rarity+' · '+(locked?'🔒 Lv '+x.level:'+'+x.gain+'🪙')")
+js = js.replace('<span>🪙${x.cost} · Lv ${x.level}</span>', '<span>${x.rarity} · 🪙${x.cost} · Lv ${x.level}</span>')
+
 src = game.read_text(encoding="utf-8")
 marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
