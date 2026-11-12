@@ -9,6 +9,24 @@ from pathlib import Path
 game = Path("www/index.html")
 js = Path("scripts/garden-v2-inline.js").read_text(encoding="utf-8")
 css = Path("scripts/garden-v2-styles.css").read_text(encoding="utf-8")
+
+# Keep the painted soil visible and start progression at the foreground beds.
+js = js.replace("return view+plantLayers(slots);", "return plantLayers(slots);")
+js = js.replace("unlocked:{'bed-1':true}", "unlocked:{'bed-7':true}")
+js = js.replace("g.unlocked['bed-'+(bi+1)]=true;", "g.unlocked[G2_GROUND_ORDER[bi].id]=true;")
+js = js.replace("const key=G2_AREAS[bi].slots[j];", "const key=G2_GROUND_ORDER[bi].slots[j];")
+anchor = "const G2_PLANT_BY_ID ="
+progression = """const G2_GROUND_ORDER = [7,8,5,6,3,4,1,2].map(n=>G2_AREAS.find(a=>a.id==='bed-'+n));
+G2_GROUND_ORDER.forEach((area,i)=>{
+ area.name='Flower Bed '+(i+1);
+ area.level=[1,2,4,6,8,10,13,16][i];
+ area.price=[0,150,300,550,850,1300,2050,3100][i];
+});
+"""
+if "const G2_GROUND_ORDER =" not in js:
+    js = js.replace(anchor, progression + anchor, 1)
+
+
 src = game.read_text(encoding="utf-8")
 marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
