@@ -44,3 +44,12 @@
 .garden2 .g2tabs button{background:#e6f0dd;border:1px solid #bcd3ae;border-radius:15px;white-space:nowrap;padding:7px;color:#4c8040;font:800 12px var(--display);cursor:pointer}
 .garden2 .g2tabs button.on{background:#489e47;color:white}
 .garden2 .g2preview{max-height:88px;max-width:100px;object-fit:contain;display:block;margin:0 auto}
+.garden2 .g2bedZoom{position:relative;width:100%;overflow:hidden;border-radius:16px;isolation:isolate;background:#92c261}
+.garden2 .g2bedWorld{position:absolute;background-size:100% 100%;background-repeat:no-repeat;pointer-events:none}
+.garden2 .g2plot{position:absolute;z-index:1;padding:0;border:0;border-radius:18%;background:transparent;color:white;cursor:pointer;touch-action:manipulation}
+.garden2 .g2plot span{display:inline-block;font:900 clamp(12px,4vw,22px) var(--display);text-shadow:0 1px 3px #183e12;line-height:1;background:#386a3080;border-radius:50%;min-width:1.2em}
+.garden2 .g2plot span:empty{display:none}
+.garden2 .g2plot:focus-visible{outline:3px solid white;box-shadow:0 0 0 5px #44b761}
+.garden2 .g2plot:active{background:#ffffff30}
+body:has(#gardenView.garden2) #adBanner{display:none!important}
+

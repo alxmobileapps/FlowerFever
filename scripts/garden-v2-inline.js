@@ -50,22 +50,41 @@ function showMyGarden(onClose,plantCh){
  function actions(markup){return `<div class="g2btns">${markup}</div>`;}
  function btn(label,cls=''){return `<button ${cls?'class="'+cls+'"':''} data-close>${label}</button>`;}
  function lockCheck(area){const lv=farmLevel(f.xp).lv;return lv>=area.level&&f.coins>=area.price;}
+ // Use the same world coordinates and artwork in the overview and bed close-up.
+ function bedLayers(slots){
+  let view='';
+  for(const slot of slots){
+   const {x,y,w,h}=slot;
+   view+=`<i class="g2soil" style="left:${(x+1)/1024*100}%;top:${(y+h*.06)/1536*100}%;width:${(w-2)/1024*100}%;height:${(h*.83)/1536*100}%"></i>`;
+  }
+  return view+plantLayers(slots);
+ }
+ function plantLayers(slots){
+  return slots.map(slot=>{
+   const p=g.plants[slot.id],state=g2Stage(p);if(!p)return '';
+   const src=state==='sprout'?FARM_IMG.sprout:state==='bud'?FARM_IMG.bud:(G2_ART[p.id]||G2_ART[G2_FLOWERS[0].id]);
+   return `<img class="g2flower ${state==='ready'?'':'g2sprout'}" alt="" loading="lazy" src="${src}" style="left:${slot.x/1024*100}%;top:${slot.y/1536*100}%;width:${slot.w/1024*100}%;height:${slot.h/1536*100}%;z-index:${Math.floor(slot.anchor[1])}">`;
+  }).join('');
+ }
+ function bedCloseup(area){
+  // Bounds include the actual fence and gate painted around each bed.
+  const crops=[[138,370,497,517],[527,370,893,517],[63,502,505,693],[526,502,971,693],[9,681,506,916],[530,681,1024,916],[0,905,505,1173],[529,905,1024,1173]];
+  const [x,y,right,bottom]=crops[Number(area.id.split('-')[1])-1],w=right-x,h=bottom-y;
+  const slots=area.slots.map(id=>G2_SLOT_BY_ID[id]);
+  const targets=slots.map((slot,i)=>{
+   const p=g.plants[slot.id],state=g2Stage(p),seed=p&&G2_PLANT_BY_ID[p.id];
+   const label=seed?`${seed.name}, ${state==='ready'?'ready to harvest':g2Fmt(p.at+p.ms-Date.now())+' until bloom'}`:`Empty plot ${i+1}, tap to plant`;
+   return `<button class="g2plot" data-slot="${slot.id}" aria-label="${label}" title="${label}" style="left:${(slot.x-x)/w*100}%;top:${(slot.y-y)/h*100}%;width:${slot.w/w*100}%;height:${slot.h/h*100}%"><span>${!p?'＋':state==='ready'?'✓':''}</span></button>`;
+  }).join('');
+  return `<div class="g2bedZoom" style="aspect-ratio:${w}/${h}"><div class="g2bedWorld" aria-hidden="true" style="left:${-x/w*100}%;top:${-y/h*100}%;width:${1024/w*100}%;height:${1536/h*100}%;background-image:url(${G2_BACKGROUND})">${bedLayers(slots)}</div>${targets}</div>`;
+ }
  function renderScene(){
   if(!alive)return;balance();
   const readyCount=G2_SLOTS.filter(s=>g2Stage(g.plants[s.id])==='ready').length;
   const house=FARM_HOUSE[f.house]||FARM_HOUSE.h1;
   let view=`<i class="g2thirdpond" aria-hidden="true"></i><img class="g2house" alt="Your ${f.house} house" src="${house}"><button class="g2houseTap" data-house aria-label="Change your house"></button>`;
-  // Cover decorative fixed flowers painted into the reference's empty soil slots.
-  for(const slot of G2_SLOTS.filter(s=>s.kind==='ground')){
-    const {x,y,w,h}=slot;
-    view+=`<i class="g2soil" style="left:${(x+1)/1024*100}%;top:${(y+h*.06)/1536*100}%;width:${(w-2)/1024*100}%;height:${(h*.83)/1536*100}%"></i>`;
-  }
-  for(const slot of G2_SLOTS){
-   const p=g.plants[slot.id],state=g2Stage(p);if(!p)continue;
-   let src=G2_ART[p.id]||G2_ART[G2_FLOWERS[0].id];
-   if(state==='sprout')src=FARM_IMG.sprout;else if(state==='bud')src=FARM_IMG.bud;
-   view+=`<img class="g2flower ${state==='ready'?'':'g2sprout'}" alt="" loading="lazy" src="${src}" style="left:${slot.x/1024*100}%;top:${slot.y/1536*100}%;width:${slot.w/1024*100}%;height:${slot.h/1536*100}%;z-index:${Math.floor(slot.anchor[1])}">`;
-  }
+  view+=bedLayers(G2_SLOTS.filter(s=>s.kind==='ground'));
+  view+=plantLayers(G2_SLOTS.filter(s=>s.kind!=='ground'));
   for(const area of G2_AREAS){
    const unlocked=!!g.unlocked[area.id],bd=area.bounds,rdy=area.slots.filter(id=>g2Stage(g.plants[id])==='ready').length;
    view+=`<button class="g2focus" data-area="${area.id}" aria-label="${area.name}${unlocked?', tap to tend':' locked'}" style="left:${bd[0]/1024*100}%;top:${bd[1]/1536*100}%;width:${(bd[2]-bd[0])/1024*100}%;height:${(bd[3]-bd[1])/1536*100}%">${!unlocked?`<span class="g2lock">🔒 ${area.level} · 🪙${area.price}</span>`:rdy?`<span class="g2ready">${rdy} ✓</span>`:''}</button>`;
@@ -91,6 +110,10 @@ function showMyGarden(onClose,plantCh){
    dialog(`<h3>🔒 ${area.name}</h3><p class="g2sub">Unlock ${area.slots.length} planting space${area.slots.length>1?'s':''} · Garden level ${area.level} · 🪙${area.price}</p><p>Garden level: <b>${lv}</b> · Flower coins: <b>${f.coins}</b></p>`+actions(`<button id="g2unlock" ${lockCheck(area)?'':'disabled'}>Unlock for 🪙${area.price}</button>${btn('Back','alt')}`),c=>{
     c.querySelector('#g2unlock').onclick=()=>{if(farmLevel(f.xp).lv<area.level||!spend(area.price))return;g.unlocked[id]=true;persist();xp(buyXP(area.price));renderScene();openArea(id);};
    });return;
+  }
+  if(area.kind==='ground'){
+   dialog(`<h3>${area.name}</h3><p class="g2sub">Tap a flower to tend it · ＋ to plant · ✓ ready to harvest</p>${bedCloseup(area)}`+actions(btn('Close','alt')),c=>c.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>tapSlot(b.dataset.slot)));
+   return;
   }
   const list=area.slots.map((key,i)=>{
    const p=g.plants[key],status=g2Stage(p),seed=p&&G2_PLANT_BY_ID[p.id];
@@ -185,7 +208,7 @@ function showMyGarden(onClose,plantCh){
   });
  }
  let timer=setInterval(()=>{if(!alive)return;const a=activeArea;renderScene();if(a&&veil.hidden===false&&!activeSlot)openArea(a);},14000);
- function close(home=false){alive=false;clearInterval(timer);root.remove();gardenOpen=null;if(home){if(typeof mapOpen!=='undefined')mapOpen=null;leaveToHome();}else onClose();}
+ function close(home=false){alive=false;clearInterval(timer);root.remove();gardenOpen=null;if(home){if(typeof mapOpen!=='undefined')mapOpen=null;leaveToHome();}else onClose();syncBanner();}
  root.querySelector('.g2home').onclick=()=>close(true);
  root.querySelector('.g2play').onclick=()=>close(false);
  root.querySelector('.g2houses').onclick=houses;
@@ -195,6 +218,7 @@ function showMyGarden(onClose,plantCh){
  root.querySelector('.g2water').onclick=()=>dialog('<h3>💧 Water</h3><p>Each watering uses 1 water and makes the selected flower grow faster. Earn water by winning levels and chapter rewards.</p>'+actions(btn('OK','alt')));
  root.querySelector('.g2lvl').onclick=()=>dialog(`<h3>🌿 Garden Level ${farmLevel(f.xp).lv}</h3><p>Plant, water, harvest flowers and unlock garden areas to earn XP.</p>`+actions(btn('OK','alt')));
  root._close=()=>close(false);gardenOpen=()=>{};
+ syncBanner();
  renderScene();
  if(!f.g2Seen){f.g2Seen=1;persist();dialog(`<h3>🌷 Welcome to your new garden!</h3><p>Grow 138 flower variants in eight beds, three ponds, an arch and three tree spots.</p><p>Tap any area to zoom in and plant. Your original houses and animal visitors are still here.</p><p>You start with 🪙100 and 💧5; the cheapest flower costs 🪙25.</p>`+actions(btn("Let's grow!")));}
  else if(plantCh!=null){dialog(`<h3>🌷 Chapter gift</h3><p>🪙+100 flower coins and 💧+3 water added.</p>`+actions(btn('Thank you!')));}
