@@ -181,7 +181,7 @@ src = src.replace("src.py = nr - 1 - teleK[i]++ * 1.15;", "src.py = nr - 0.75;")
 
 # Refill portal shower waves before waiting on another special.
 wave_refill = '    // Refill between portal shower waves, preserving the identity of pending hits.\n    // Coordinates alone become stale when gravity moves the targeted flowers.\n    if (inShower && portals.length && !showerSkip) {\n      const targets = uniq(next).map(([r,c]) => ({r,c,p:grid[r] && grid[r][c],soil:ground[r] && ground[r][c]>0}));\n      await Promise.all(bees.splice(0));\n      if (pendingBees.length) await releaseBees();\n      await gravity();\n      next.length = 0;\n      for (const target of targets) {\n        if (target.soil) next.push([target.r,target.c]);\n        else if (target.p && grid[target.p.r] && grid[target.p.r][target.p.c] === target.p) next.push([target.p.r,target.p.c]);\n      }\n    }\n'
-wave_anchor = '    if (!next.length) break;\n    await sleep(inShower ? 110 : 170);'
+wave_anchor = '    if (!next.length) break;'
 if "// Refill between portal shower waves" not in src:
     if src.count(wave_anchor) != 1: raise SystemExit("Missing blast wave anchor")
     src = src.replace(wave_anchor, wave_refill + wave_anchor, 1)
