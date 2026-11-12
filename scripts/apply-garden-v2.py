@@ -173,6 +173,11 @@ if "function portalCanSupply(" not in src:
     src = src.replace("!entryAt.has(top * COLS + c) && !noSpawn.has(top * COLS + c)", "(!entryAt.has(top * COLS + c) || !portalCanSupply(top, c)) && !noSpawn.has(top * COLS + c)", 1)
     src = src.replace("if (!src || src.frozen || grid[nr][nc]", "if (!src || src.frozen || src.falling || src.tw || grid[nr][nc]", 1)
 
+# Resolve the logical board independently of animation flags.
+src = src.replace("src.frozen || src.falling || src.tw || grid[nr][nc]", "src.frozen || grid[nr][nc]")
+src = src.replace("p.r = write; p.falling = true;", "p.r = write; p.tw = null; p.vy = 0; p.falling = true;")
+src = src.replace("src.py = nr - 1 - teleK[i]++ * 1.15;", "src.py = nr - 0.75;")
+
 # The garden never requests a banner, including any of its open panels.
 banner_conditions = (
     "adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted && levelIdx >= 20))",
