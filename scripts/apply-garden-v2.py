@@ -27,6 +27,11 @@ if "const G2_GROUND_ORDER =" not in js:
     js = js.replace(anchor, progression + anchor, 1)
 
 
+import re
+empty_background = Path("scripts/garden-empty-background.txt").read_text().strip()
+js = re.sub(r'const G2_BACKGROUND = "[^"]+";', lambda _: 'const G2_BACKGROUND = "data:image/webp;base64,' + empty_background + '";', js, count=1)
+js = js.replace('<div class="g2legend"><span>🌿 8 beds</span><span>💧 3 ponds</span><span>🌸 138 breeds</span><span>🌳 3 trees</span></div>', '')
+js = js.replace("root.querySelector('.g2legend').title=readyCount+' flowers ready to harvest';", "")
 src = game.read_text(encoding="utf-8")
 marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
