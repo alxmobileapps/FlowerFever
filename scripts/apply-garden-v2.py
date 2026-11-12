@@ -166,6 +166,13 @@ if "function positionShowerControls()" not in src:
     src=src.replace(controls_anchor,controls_anchor+controls_code,1)
     src=src.replace("skipBtn.hidden = false; ffBtn.hidden = false;", "skipBtn.hidden = false; ffBtn.hidden = false; requestAnimationFrame(positionShowerControls);",1)
 
+# Portal refill: finish source motion before teleporting; recover blocked feeds.
+portal_helper = '// A portal can feed a segment only while its upstream path can supply flowers.\nfunction portalCanSupply(r, c, seen = new Set()) {\n  if (blockedCell(r, c)) return false;\n  while (r > 0 && !blockedCell(r - 1, c)) r--;\n  const key = r * COLS + c;\n  if (seen.has(key) || noSpawn.has(key)) return false;\n  if (!entryAt.has(key)) return true;\n  const next = new Set(seen); next.add(key);\n  return portals.some(([er, ec, nr, nc]) => nr === r && nc === c && portalCanSupply(er, ec, next));\n}\n'
+if "function portalCanSupply(" not in src:
+    src = src.replace("function verticalPass() {", portal_helper + "\nfunction verticalPass() {", 1)
+    src = src.replace("!entryAt.has(top * COLS + c) && !noSpawn.has(top * COLS + c)", "(!entryAt.has(top * COLS + c) || !portalCanSupply(top, c)) && !noSpawn.has(top * COLS + c)", 1)
+    src = src.replace("if (!src || src.frozen || grid[nr][nc]", "if (!src || src.frozen || src.falling || src.tw || grid[nr][nc]", 1)
+
 # The garden never requests a banner, including any of its open panels.
 banner_conditions = (
     "adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted && levelIdx >= 20))",
@@ -206,4 +213,5 @@ src = src.replace("</head>", '<style id="garden-v2-styles">' + css + "</style></
 src = src.replace(marker, js + "\n" + marker, 1)
 game.write_text(src, encoding="utf-8")
 print(f"Garden V2 installed: {len(src):,} characters (138 breeds, 83 plots).")
+
 
