@@ -122,6 +122,50 @@ marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
 old_welcome = "Here are ${FC_SVG}<b>150</b> to start!"
 
+
+# Play all three visitor frames and give each movement kind its own path.
+old_visitor = '<i class="g2floating" style="left:${pos[0]}%;top:${pos[1]}%;animation-delay:${pi*-.4}s"><img alt="${p[1]}" src="${frames[(pi*2)%frames.length]||frames[0]||\'\'}"></i>'
+new_visitor = '<i class="g2floating g2motion-${p[6]}" style="left:${pos[0]}%;top:${pos[1]}%;--phase:${pi*-.71}s;--cycle:${p[6]===\'hover\'?0.24:p[6]===\'flutter\'?0.72:p[6]===\'hop\'?0.9:0.48}s" aria-label="${p[1]}">${[0,1,2].map(i=>\'<img alt="" class="g2frame g2frame-\'+i+\'" src="\'+(frames[i]||frames[0]||\'\')+\'">\').join(\'\')}</i>'
+if old_visitor not in js:
+    raise SystemExit("Missing visitor animation anchor")
+js = js.replace(old_visitor, new_visitor)
+css += """
+.garden2 .g2floating{animation:g2flight 5.4s ease-in-out infinite;animation-delay:var(--phase);will-change:transform}
+.garden2 .g2floating img.g2frame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;animation:g2frames var(--cycle) linear infinite;animation-delay:var(--phase);opacity:0}
+.garden2 .g2floating{aspect-ratio:1}
+.garden2 .g2floating img.g2frame-1{animation-delay:calc(var(--phase) - var(--cycle)/3)}
+.garden2 .g2floating img.g2frame-2{animation-delay:calc(var(--phase) - var(--cycle)*2/3)}
+@keyframes g2frames{0%,27%{opacity:1}33.33%,94%{opacity:0}100%{opacity:1}}
+@keyframes g2flight{0%,100%{transform:translate(-14px,0) rotate(-5deg)}25%{transform:translate(16px,-15px) rotate(5deg)}50%{transform:translate(30px,3px) rotate(0)}75%{transform:translate(-5px,13px) rotate(-4deg)}}
+.garden2 .g2motion-hover{animation:g2hover 2s ease-in-out infinite}
+@keyframes g2hover{0%,100%{transform:translate(0,0) rotate(-3deg)}50%{transform:translate(12px,-8px) rotate(4deg)}}
+.garden2 .g2motion-dart{animation-duration:3.2s}
+.garden2 .g2motion-flutter{animation-duration:6.5s}
+.garden2 .g2motion-walk{animation:g2walk 8s ease-in-out infinite}
+@keyframes g2walk{0%,100%{transform:translateX(-20px) rotate(-6deg)}50%{transform:translateX(25px) rotate(7deg)}}
+.garden2 .g2motion-hop,.garden2 .g2motion-bird{animation:g2hop 2.3s ease-in-out infinite}
+@keyframes g2hop{0%,45%,100%{transform:translate(0,0) scale(1.04,.96)}15%{transform:translate(10px,-16px) scale(.96,1.04)}30%{transform:translate(20px,0) scale(1.05,.95)}70%{transform:translate(8px,-10px)}}
+.garden2 .g2motion-glow{animation:g2flight 7s ease-in-out infinite;filter:drop-shadow(0 0 5px #eaff66)}
+"""
+# Anchor controls eight pixels below the visible board rather than the stage bottom.
+controls_anchor = '$("#stage").appendChild(skipBtn);'
+controls_code = """
+function positionShowerControls(){
+ const stage=document.getElementById('stage'),board=document.getElementById('board');
+ if(!stage||!board)return;
+ const s=stage.getBoundingClientRect(),b=board.getBoundingClientRect();
+ const height=Math.max(ffBtn.offsetHeight,skipBtn.offsetHeight,38);
+ const top=Math.max(0,Math.min(b.bottom-s.top+8,stage.clientHeight-height-6));
+ for(const button of [ffBtn,skipBtn]){button.style.top=top+'px';button.style.bottom='auto';}
+}
+const showerControlsObserver=new ResizeObserver(()=>requestAnimationFrame(positionShowerControls));
+showerControlsObserver.observe(document.getElementById('stage'));
+showerControlsObserver.observe(canvas);
+"""
+if "function positionShowerControls()" not in src:
+    src=src.replace(controls_anchor,controls_anchor+controls_code,1)
+    src=src.replace("skipBtn.hidden = false; ffBtn.hidden = false;", "skipBtn.hidden = false; ffBtn.hidden = false; requestAnimationFrame(positionShowerControls);",1)
+
 # The garden never requests a banner, including any of its open panels.
 banner_conditions = (
     "adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted && levelIdx >= 20))",
