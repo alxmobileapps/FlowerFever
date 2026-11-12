@@ -53,6 +53,38 @@ js = js.replace(old_image, new_image)
 js = js.replace('<i class="g2thirdpond" aria-hidden="true"></i>', '<svg class="g2thirdpond" viewBox="0 1200 310 215" aria-hidden="true"><image href="${G2_BACKGROUND}" width="1024" height="1536"/></svg>')
 css += "\n.garden2 .g2flower{overflow:hidden}.garden2 .g2thirdpond{left:70%;top:15%;width:22%;height:10%;border:0;background:none;box-shadow:none;transform:none;border-radius:0}\n"
 
+
+# Order both the seed picker and catalog by rarity, then unlock level and price.
+rarity_order = """
+const G2_RARITY_RANK = {'Common':0,'Uncommon':1,'Rare':2,'Very Rare':3,'Epic':4,'Legendary':5,'Mythic':6};
+G2_FLOWERS.sort((a,b)=>(G2_RARITY_RANK[a.rarity]??99)-(G2_RARITY_RANK[b.rarity]??99)||a.level-b.level||a.cost-b.cost||a.name.localeCompare(b.name));
+"""
+js = js.replace("const G2_PLANT_BY_ID =", rarity_order + "const G2_PLANT_BY_ID =", 1)
+js = js.replace("s.h=[25,34,42,48][band];", "s.h=[28,38,46,50][band];")
+js = js.replace("s.x+=s.w*.1;s.w*=.8;", "s.x+=s.w*.02;s.w*=.96;")
+js = js.replace('<svg class="g2flower" viewBox=', '<svg class="g2flower" preserveAspectRatio="none" viewBox=')
+js = js.replace("state==='ready'?'✓':''", "state==='ready'?'':''")
+js = js.replace(" · ✓ ready to harvest", "")
+css += """
+.garden2 .g2ready{display:none!important}
+.garden2 .g2panel .g2btns{gap:12px;margin-top:14px;padding-bottom:5px}
+.garden2 .g2panel .g2btns button,.garden2 .g2tabs button{
+ background:linear-gradient(#7bd16c,#4eac48);border:2px solid #d1ebbd;border-radius:17px;
+ box-shadow:0 5px 0 #347d32,inset 0 2px 0 #ffffff85,0 7px 8px #39572a25;
+ color:#fff;text-shadow:0 1px 1px #327331;padding:12px 18px;min-height:48px;
+ transition:transform .1s,box-shadow .1s;
+}
+.garden2 .g2panel .g2btns button.alt{
+ background:linear-gradient(#fffef5,#e9e3d5);border-color:#d6ddbc;color:#69503d;text-shadow:0 1px #fff;
+ box-shadow:0 5px 0 #b8b397,inset 0 2px 0 #fff,0 7px 8px #39572a20;
+}
+.garden2 .g2panel .g2btns button:active:not(:disabled),.garden2 .g2tabs button:active{
+ transform:translateY(4px);box-shadow:0 1px 0 #347d32,inset 0 2px 0 #ffffff55;
+}
+.garden2 .g2panel .g2btns button:disabled{opacity:.45;cursor:default}
+.garden2 .g2panel .g2btns button:focus-visible{outline:3px solid #f5c84d;outline-offset:4px}
+"""
+
 src = game.read_text(encoding="utf-8")
 marker = "/* ============ Home screen ============ */"
 old_start = "f.coins = 150; f.water = 3;"
