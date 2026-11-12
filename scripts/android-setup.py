@@ -55,12 +55,48 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {{
     @Override
-    public void onResume() {{ super.onResume(); hideBars(); }}
+    public void onResume() {{ super.onResume(); hideBars(); checkRequiredUpdate(); }}
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {{
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) hideBars();
+    }}
+
+
+    private boolean updateBusy;
+    private android.app.AlertDialog updateGate;
+    private void checkRequiredUpdate() {{
+        if (updateBusy) return;
+        updateBusy = true;
+        final com.google.android.play.core.appupdate.AppUpdateManager manager =
+            com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(this);
+        manager.getAppUpdateInfo().addOnSuccessListener(info -> {{
+            updateBusy = false;
+            if (info.updateAvailability() == 2 || info.updateAvailability() == 3) {{
+                if (updateGate != null && updateGate.isShowing()) return;
+                updateGate = new android.app.AlertDialog.Builder(this)
+                    .setTitle("Update required").setMessage("Update Flower Fever to continue playing.")
+                    .setCancelable(false)
+                    .setPositiveButton("Update", (d, w) -> {{
+                        try {{
+                            if (info.isUpdateTypeAllowed(1)) {{
+                                manager.startUpdateFlowForResult(info, this,
+                                    com.google.android.play.core.appupdate.AppUpdateOptions.newBuilder(1).build(), 9041);
+                            }} else {{
+                                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=" + getPackageName())));
+                            }}
+                        }} catch (Exception e) {{ checkRequiredUpdate(); }}
+                    }})
+                    .setNegativeButton("Exit", (d, w) -> finish()).show();
+            }} else if (updateGate != null) {{ updateGate.dismiss(); }}
+        }}).addOnFailureListener(e -> {{ updateBusy = false; }});
+    }}
+    @Override
+    protected void onActivityResult(int request, int result, android.content.Intent data) {{
+        super.onActivityResult(request, result, data);
+        if (request == 9041) checkRequiredUpdate();
     }}
 
     private void hideBars() {{
@@ -162,3 +198,6 @@ for p in RES.glob("drawable*/splash.png"):
 os.makedirs("dist", exist_ok=True)
 art.resize((512, 512), Image.LANCZOS).save("dist/playstore-icon-512.png")
 print("Android project patched: portrait, fullscreen, AdMob, icons, version", vc)
+
+# Require Play updates when available to this player.
+build_gradle.write_text(build_gradle.read_text() + "\ndependencies { implementation 'com.google.android.play:app-update:2.1.0' }\n")

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -63,6 +65,7 @@ jobs:
           git apply scripts/celebration-polish.patch
           git apply scripts/webgl-effects.patch
           git apply --unidiff-zero scripts/home-and-offers.patch
+          python scripts/apply-garden-v2.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
@@ -115,7 +118,7 @@ jobs:
           rm -f release.keystore aligned.apk
 
       - name: Save signed AAB to the play-upload branch (for uploading to Play Console)
-        if: env.KEYSTORE_BASE64 != ''
+        if: env.KEYSTORE_BASE64 != '' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p /tmp/pu && cp dist/flower-fever-release.aab /tmp/pu/
           cd /tmp/pu && git init -q -b play-upload

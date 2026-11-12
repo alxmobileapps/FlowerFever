@@ -34,10 +34,14 @@
     let bannerShown = false, bannerWanted = false;
     const banner = {
       async show() {
-        bannerWanted = true; await ready; if (!bannerWanted) return;
+        if (document.getElementById('gardenView')) { await banner.hide(); return; }
+        bannerWanted = true; await ready;
+        if (!bannerWanted || document.getElementById('gardenView')) return;
         try {
           if (bannerShown) await AdMob.resumeBanner();
           else { await AdMob.showBanner({ adId: cfg.bannerId, adSize: 'BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: test }); bannerShown = true; }
+          // An in-flight native show can finish after the garden's hide call.
+          if (!bannerWanted || document.getElementById('gardenView')) await AdMob.hideBanner();
         } catch (e) { log('banner', e); }
       },
       async hide() { bannerWanted = false; await ready; try { if (bannerShown) await AdMob.hideBanner(); } catch (e) {} }
@@ -267,3 +271,4 @@
     if (!handled) App.minimizeApp();
   });
 })();
+
