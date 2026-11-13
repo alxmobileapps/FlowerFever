@@ -17,12 +17,12 @@ def once(before, after):
         raise RuntimeError("Board layout code changed; check patch-board-layout.py: " + before[:60])
     src = src.replace(before, after)
 
-# 1) board near the top of the play area (20 px under the top bar)
-css = "#stage.boardTop{place-items:start center!important}#stage.boardTop>.frame{margin-top:20px}\n"
+# 1) board near the top of the play area (70 px under the top bar; the top bar stays above the board so its buttons can always be tapped)
+css = "#stage.boardTop{place-items:start center!important}#stage.boardTop>.frame{margin-top:70px}#app>.hud{z-index:7}\n"
 once("canvas#board{display:block;", css + "canvas#board{display:block;")
 once('<main id="stage">', '<main id="stage" class="boardTop">')
 # keep tall boards inside the play area now that there is a 20 px gap above
-once("(h - 6 - frameExtra) / ROWS", "(h - 26 - frameExtra) / ROWS")
+once("(h - 6 - frameExtra) / ROWS", "(h - 76 - frameExtra) / ROWS")
 
 # 3) the board grid has empty rows around smaller levels: lift the board by those rows so the
 #    flowers (not the empty space) start right under the top bar
