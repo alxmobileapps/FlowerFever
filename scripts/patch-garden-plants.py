@@ -175,6 +175,29 @@ rep("${FC_SVG} Sell · +${gain0} <small>(+${sellXP(sd)} XP)</small>", "${FC_SVG}
 # --- exchange: 50 coins for 1 diamond (still at most 5 a day) ------------------------------------
 rep("FC_SELL = 25,", "FC_SELL = 50,")
 
+# --- rare, epic and legendary seeds open by finishing puzzle chapters (and still need the Garden Level) ----
+# Rare: chapters 1-6, Epic: chapters 7-13, Legendary: chapters 14-20, a few plants per chapter, in Garden Level order.
+rep("const brImg = k =>", """const chaptersDone = () => { let n = 0; for (let c = 0; c < CHAPTERS; c++) if (bedDone(c)) n++; return n; };
+[["Rare", 1, 6], ["Epic", 7, 7], ["Legendary", 14, 7]].forEach(([r, first, span]) => {
+  ["ground", "water", "hanging", "tree"].forEach(t => {   // each place gets new seeds from the first chapter of the tier
+    const ids = NEW_SEED_IDS.filter(k => SEEDS[k].r === r && SEEDS[k].t === t).sort((a, b) => SEEDS[a].lv - SEEDS[b].lv);
+    ids.forEach((k, i) => { SEEDS[k].ch = first + Math.floor(i * span / ids.length); });
+  });
+});
+const chLocked = d => (d.ch || 0) > chaptersDone();
+const brImg = k =>""")
+rep("const d = SEEDS[k], lock = d.lv > lv;", "const d = SEEDS[k], lock = d.lv > lv || chLocked(d);")
+rep("lock ? `🔒 Level ${d.lv}`", "lock ? (chLocked(d) ? `🔒 Finish chapter ${d.ch}` : `🔒 Level ${d.lv}`)")
+rep("if (d.lv > lv) { sheetShow(", """if (chLocked(d)) { const done = chaptersDone(); sheetShow(`<img class="fpic" alt="" src="${brImg(k)}"><div class="frare r${d.r}">${d.r}</div><h3>${d.n}</h3><p>🔒 Finish <b>puzzle chapter ${d.ch}</b> to unlock these seeds.<br>You have finished ${done} chapter${done === 1 ? "" : "s"}. Each chapter is 25 levels.</p><div class="btns col"><button class="btn" id="sPlay">▶ Play a level</button><button class="btn alt" id="sBack">Back</button></div>`, c2 => { c2.querySelector("#sBack").onclick = () => picker(i); c2.querySelector("#sPlay").onclick = close; }); return; }
+        if (d.lv > lv) { sheetShow(""")
+rep("nn = (NEW_SEED_IDS.length ? NEW_SEED_IDS : SEED_IDS).filter(k => SEEDS[k].lv > before && SEEDS[k].lv <= L.lv)",
+    "nn = (NEW_SEED_IDS.length ? NEW_SEED_IDS : SEED_IDS).filter(k => SEEDS[k].lv > before && SEEDS[k].lv <= L.lv && !chLocked(SEEDS[k]))")
+# the chapter gift says which seeds just opened
+rep("<p>Your garden gift is here: ${FC_SVG}<b>+100</b> and 💧<b>+3</b></p>",
+    "<p>Your garden gift is here: ${FC_SVG}<b>+100</b> and 💧<b>+3</b></p>${(() => { const nw = NEW_SEED_IDS.filter(k => SEEDS[k].ch === chaptersDone()).map(k => SEEDS[k].n); return nw.length ? `<p>🌱 New seeds unlocked: <b>${nw.join(\", \")}</b></p>` : \"\"; })()}")
+rep("Gift: your next lifeline is <b>free</b> 🎁<button",
+    "Gift: your next lifeline is <b>free</b> 🎁${(() => { const now = chaptersDone() + (bedDone(Math.floor(levelIdx / 25)) ? 0 : 1), n = NEW_SEED_IDS.filter(k => SEEDS[k].ch === now).length; return n ? `<br>🌱 <b>${n} new seed${n > 1 ? \"s\" : \"\"}</b> unlocked in your garden!` : \"\"; })()}<button")
+
 # no banner in the garden, so it fits one screen
 rep("const want = adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted && levelIdx >= 20));",
     "const want = adsAllowed() && !gardenOpen && !homeOpen && !mapOpen && booted && levelIdx >= 20;")
