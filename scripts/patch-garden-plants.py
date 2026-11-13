@@ -46,7 +46,9 @@ const NEW_SEED_IDS = (window.GARDEN_PLANTS || []).map(p => {
   SEEDS[p.id] = { n: p.name, base: p.type, t: p.type, cost: p.cost, min: p.minutes, gain, xp, lv: p.level, r: p.rarity, w: p.rarity === "Legendary" ? 2 : p.rarity === "Epic" ? 1 : 0 };
   return p.id; });
 const brImg = k => (window.GARDEN_ART && window.GARDEN_ART[k]) || FARM_BR[k];
-const seedsFor = kind => NEW_SEED_IDS.length ? NEW_SEED_IDS.filter(k => SEEDS[k].t === kind) : (kind === "ground" ? SEED_IDS : []);""")
+const RARITY_ORDER = { Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4 };
+const seedsFor = kind => (NEW_SEED_IDS.length ? NEW_SEED_IDS.filter(k => SEEDS[k].t === kind) : (kind === "ground" ? SEED_IDS : []))
+  .slice().sort((a, b) => (RARITY_ORDER[SEEDS[a].r] ?? 9) - (RARITY_ORDER[SEEDS[b].r] ?? 9) || SEEDS[a].lv - SEEDS[b].lv || SEEDS[a].cost - SEEDS[b].cost);   // common first, legendary last""")
 # pictures of the new plants
 garden_start = src.index("function showMyGarden(")
 garden_end = src.index("/* ============ Home screen ============ */")
@@ -157,6 +159,9 @@ css = """
 .farm .fxslot{border:0;border-radius:16px;background:#fff6ea;box-shadow:0 0 0 2px #f0d9b8;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font:800 14px/1.2 var(--display);color:#5a3a20;cursor:pointer}
 .farm .fxslot img{width:72px;height:72px;object-fit:contain}.farm .fxslot small{font:700 12px/1.2 var(--body);color:#8a6a50}
 .farm .fxslot .fxplus{font-size:40px;line-height:72px;height:72px;color:#e8467e}
+.farm .fseeds{grid-template-columns:repeat(3,minmax(0,1fr))!important;overflow-x:hidden!important}
+.farm .fseed{min-width:0}.farm .fseed img{max-width:100%;aspect-ratio:1;object-fit:contain}
+.farm .fseed b{overflow-wrap:anywhere;text-align:center}.farm .fseed span{white-space:normal!important;text-align:center;font-size:11.5px!important}
 .farm .fad{display:none!important}.farm .fad ~ .fsheet{padding-bottom:12px!important}
 """
 rep(".farm .fbedbtn{z-index:4}", ".farm .fbedbtn{z-index:4}" + css)
