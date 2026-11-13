@@ -66,6 +66,7 @@ jobs:
           python scripts/patch-portal-refill.py
           python scripts/patch-board-layout.py
           python scripts/patch-garden-plants.py
+          python scripts/patch-bouquets.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
