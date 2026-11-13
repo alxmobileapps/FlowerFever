@@ -35,7 +35,16 @@ rep("stage.style.backgroundImage = `url(${FARM_IMG.overview_nh})`;", "stage.styl
 # --- plants ----------------------------------------------------------------------------------
 rep("const SEED_IDS = Object.keys(SEEDS);", """const SEED_IDS = Object.keys(SEEDS);
 // GARDEN_PLANTS_PATCH: the 138 Garden V2 plants (ground, water, hanging, tree). The first 54 flowers still grow and sell, but are no longer sold.
-const NEW_SEED_IDS = (window.GARDEN_PLANTS || []).map(p => { SEEDS[p.id] = { n: p.name, base: p.type, t: p.type, cost: p.cost, min: p.minutes, gain: p.gain, xp: p.xp, lv: p.level, r: p.rarity }; return p.id; });
+// Balance on top of Garden V2: ponds, pergola and trees earn more per hour than beds, and more the rarer the plant;
+// common flowers give 1 XP; epic and legendary seeds also need water (from puzzles) to plant; water plants give 1 water back.
+const XRATE = { water: { Uncommon: 110, Rare: 120, Epic: 130 }, hanging: { Uncommon: 115, Rare: 125, Epic: 135, Legendary: 145 }, tree: { Uncommon: 125, Rare: 140, Epic: 155, Legendary: 170 } };
+const XXP = { Uncommon: 4, Rare: 4.5, Epic: 5, Legendary: 5.5 };
+const NEW_SEED_IDS = (window.GARDEN_PLANTS || []).map(p => {
+  const special = p.type !== "ground" && XRATE[p.type] && XRATE[p.type][p.rarity];
+  const gain = special ? p.cost + Math.round(XRATE[p.type][p.rarity] * p.minutes / 60) : p.gain;
+  const xp = special ? Math.max(1, Math.round(XXP[p.rarity] * p.minutes / 60)) : p.rarity === "Common" ? 1 : p.xp;
+  SEEDS[p.id] = { n: p.name, base: p.type, t: p.type, cost: p.cost, min: p.minutes, gain, xp, lv: p.level, r: p.rarity, w: p.rarity === "Legendary" ? 2 : p.rarity === "Epic" ? 1 : 0 };
+  return p.id; });
 const brImg = k => (window.GARDEN_ART && window.GARDEN_ART[k]) || FARM_BR[k];
 const seedsFor = kind => NEW_SEED_IDS.length ? NEW_SEED_IDS.filter(k => SEEDS[k].t === kind) : (kind === "ground" ? SEED_IDS : []);""")
 # pictures of the new plants
@@ -151,6 +160,20 @@ css = """
 .farm .fad{display:none!important}.farm .fad ~ .fsheet{padding-bottom:12px!important}
 """
 rep(".farm .fbedbtn{z-index:4}", ".farm .fbedbtn{z-index:4}" + css)
+
+
+# --- water: epic / legendary seeds need water to plant; water plants give 1 water when picked --------
+rep("<div class=\"fstats\"><div><small>Seeds</small><b>${FC_SVG}${sd.cost}</b></div>", "<div class=\"fstats\"><div><small>Seeds</small><b>${FC_SVG}${sd.cost}${sd.w ? ` + 💧${sd.w}` : \"\"}</b></div>")
+rep("`${FC_SVG}${d.cost} · ⏳${fmtLeft(d.min * 60000).replace(/ 0s$/, \"\")}`", "`${FC_SVG}${d.cost}${d.w ? ` 💧${d.w}` : \"\"} · ⏳${fmtLeft(d.min * 60000).replace(/ 0s$/, \"\")}`")
+rep("if (f.coins < sd.cost) { short(sd.cost); return; }\n          f.coins -= sd.cost; s.plots[i] =",
+    "if (f.coins < sd.cost) { short(sd.cost); return; }\n          if ((sd.w || 0) > f.water) { sheetShow(`<h3>Not enough 💧</h3><p>${sd.n} needs 💧<b>${sd.w}</b> to plant and you have 💧<b>${f.water}</b>.<br>Win puzzle levels with 3 stars to get water.</p><div class=\"btns col\"><button class=\"btn\" id=\"sPlay\">▶ Play a level</button><button class=\"btn alt\" data-x>OK</button></div>`, c2 => c2.querySelector(\"#sPlay\").onclick = close); return; }\n          f.coins -= sd.cost; f.water -= sd.w || 0; s.plots[i] =")
+rep("s.plots[i] = null; const gain = Math.round(sd.gain * beeBonus(f)), xp = sellXP(sd); f.coins += gain; persist();",
+    "s.plots[i] = null; const gain = Math.round(sd.gain * beeBonus(f)), xp = sellXP(sd), wb = sd.t === \"water\" ? 1 : 0; f.coins += gain; f.water += wb; persist();")
+rep("floatAt(btn, `+${gain} ${FC_SVG}<small>+${xp} XP</small>`);", "floatAt(btn, `+${gain} ${FC_SVG}${wb ? \" 💧+1\" : \"\"}<small>+${xp} XP</small>`);")
+rep("${FC_SVG} Sell · +${gain0} <small>(+${sellXP(sd)} XP)</small>", "${FC_SVG} Sell · +${gain0}${sd.t === \"water\" ? \" · 💧+1\" : \"\"} <small>(+${sellXP(sd)} XP)</small>")
+
+# --- exchange: 50 coins for 1 diamond (still at most 5 a day) ------------------------------------
+rep("FC_SELL = 25,", "FC_SELL = 50,")
 
 # no banner in the garden, so it fits one screen
 rep("const want = adsAllowed() && (!!gardenOpen || (!homeOpen && !mapOpen && booted && levelIdx >= 20));",
