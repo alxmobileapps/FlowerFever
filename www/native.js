@@ -257,6 +257,35 @@
     };
   }
 
+  /* ---------- Bouquet pictures: save to the phone's photos, or share (Messenger, Facebook…) ---------- */
+  const FSys = P('Filesystem'), Shr = P('Share'), Med = P('Media');
+  if (FSys && Shr) {
+    const toCache = async (dataUrl, name) => {
+      const r = await FSys.writeFile({ path: name, data: dataUrl.split(',')[1], directory: 'CACHE' });
+      return r.uri;
+    };
+    window.FlowerFeverShare = {
+      async save(dataUrl, name) {
+        const uri = await toCache(dataUrl, name);
+        if (Med) {
+          try {
+            let albums = (await Med.getAlbums()).albums || [], al = albums.find(a => a.name === 'Flower Fever');
+            if (!al) { await Med.createAlbum({ name: 'Flower Fever' }); albums = (await Med.getAlbums()).albums || []; al = albums.find(a => a.name === 'Flower Fever'); }
+            await Med.savePhoto({ path: uri, albumIdentifier: al && al.identifier, fileName: name.replace(/\.png$/, '') });
+            return true;
+          } catch (e) { log('save photo', e); }
+        }
+        // no photo library access: let the person pick "Save" from the share menu
+        try { await Shr.share({ title: 'Save picture', files: [uri] }); return true; } catch (e) { return false; }
+      },
+      async share(dataUrl, name, text) {
+        const uri = await toCache(dataUrl, name);
+        try { await Shr.share({ title: 'Flower Fever', text, files: [uri], dialogTitle: 'Send your bouquet' }); return true; }
+        catch (e) { log('share', e); return false; }   // closed without sharing
+      }
+    };
+  }
+
   /* ---------- Android back button: close the open window, or ask before leaving ---------- */
   const App = P('App');
   if (App) App.addListener('backButton', () => {
