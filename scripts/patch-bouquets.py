@@ -84,7 +84,7 @@ code = r'''
     const need = needFor(), ids = Object.keys(f.inv).filter(k => f.inv[k] > 0 && SEEDS[k]).sort((a, b) => (need[b] ? 1 : 0) - (need[a] ? 1 : 0));
     let extra = 0; ids.forEach(k => { extra += Math.max(0, f.inv[k] - (need[k] || 0)) * sellPrice(k); });
     sheetShow(`<h3>🧺 Basket</h3>${ids.length ? `<div class="fbask">${ids.map(k => { const keep = Math.min(f.inv[k], need[k] || 0), more = f.inv[k] - keep;
-        return `<button class="fbi${more ? "" : " kept"}" data-k="${k}" aria-label="${SEEDS[k].n}, ${f.inv[k]}${keep ? `, ${keep} kept for bouquets` : ""}"><img alt="" src="${brImg(k)}"><b>×${f.inv[k]}</b>${keep ? `<i>💐${keep}</i>` : ""}<small>${more ? `${FC_SVG}${sellPrice(k)}` : "💐"}</small></button>`; }).join("")}</div>`
+        return `<button class="fbi${more ? "" : " kept"}" data-k="${k}" aria-label="${SEEDS[k].n}, ${f.inv[k]}${keep ? `, ${keep} kept for bouquets` : ""}"><img alt="" src="${brImg(k)}"><span class="fbn">${SEEDS[k].n}</span><b>×${f.inv[k]}</b>${keep ? `<i>💐${keep}</i>` : ""}<small>${more ? `${FC_SVG}${sellPrice(k)}` : "💐"}</small></button>`; }).join("")}</div>`
         : `<p class="fempty">🌸 → 🧺</p>`}
       <div class="btns col">${extra ? `<button class="btn" id="sSellX">${FC_SVG} Sell extras · +${extra}</button>` : ""}<button class="btn alt" id="sAlb">💐 Album</button><button class="btn alt" data-x>Close</button></div>`,
       c => { const sx = c.querySelector("#sSellX"); if (sx) sx.onclick = sellExtras; c.querySelector("#sAlb").onclick = () => albumSheet(); c.querySelectorAll(".fbi").forEach(b => b.onclick = () => sellOne(b.dataset.k, b)); });
@@ -139,9 +139,9 @@ css = """
 @keyframes fdotp{50%{transform:scale(1.35)}}
 .farm .fpickall{border:0;border-radius:999px;padding:8px 18px;font:800 17px/1.2 var(--display);color:#fff;background:linear-gradient(180deg,#ff8ab4,#e8467e);box-shadow:0 3px 0 #b8325f;cursor:pointer}
 .farm .ffly{position:fixed;width:52px;height:52px;object-fit:contain;z-index:30;pointer-events:none;transition:transform .7s cubic-bezier(.5,-.2,.6,1),opacity .7s}
-.farm .fbask{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0;max-height:46vh;overflow:auto;padding:3px}
+.farm .fbask{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0;max-height:46vh;overflow:auto;padding:3px}
 .farm .fbi{position:relative;border:0;border-radius:14px;background:#fff6ea;box-shadow:0 0 0 2px #f0d9b8;padding:6px 4px;display:flex;flex-direction:column;align-items:center;cursor:pointer;font:800 15px/1.1 var(--display);color:#5a3a20}
-.farm .fbi img{width:54px;height:54px;object-fit:contain}.farm .fbi small{font:800 12px/1.2 var(--body);color:#8a6a50;display:flex;align-items:center;gap:2px}
+.farm .fbi img{width:54px;height:54px;object-fit:contain}.farm .fbi .fbn{font:800 12px/1.15 var(--body);color:#5a3a20;text-align:center;overflow-wrap:anywhere;margin:2px 0 1px}.farm .fbi small{font:800 12px/1.2 var(--body);color:#8a6a50;display:flex;align-items:center;gap:2px}
 .farm .fbi i{position:absolute;right:3px;top:3px;font:800 11px/1 var(--body);font-style:normal;background:#fff;border-radius:999px;padding:3px 5px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .farm .fbi.kept{background:#fdeef4;box-shadow:0 0 0 2px #f5c2d6}
 .farm .fbi.nope{animation:fnope .35s}@keyframes fnope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
