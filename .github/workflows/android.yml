@@ -68,6 +68,7 @@ jobs:
           python scripts/patch-garden-plants.py
           python scripts/patch-bouquets.py
           python scripts/patch-share-garden.py
+          python scripts/patch-save-merge.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
