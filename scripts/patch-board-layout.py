@@ -22,7 +22,9 @@ css = "#stage.boardTop{place-items:start center!important}#stage.boardTop>.frame
 once("canvas#board{display:block;", css + "canvas#board{display:block;")
 once('<main id="stage">', '<main id="stage" class="boardTop">')
 # keep tall boards inside the play area now that there is a 20 px gap above
-once("(h - 6 - frameExtra) / ROWS", "(h - 26 - frameExtra) / ROWS")
+once("(h - 6 - frameExtra) / ROWS", "(h - 26 - frameExtra) / (ROWS + Math.max(0, (L && L.nudge && L.nudge[1]) || 0))")
+# short screens (landscape): let tiles get smaller rather than run under the banner
+once("CELL = Math.max(20, Math.min(110,", "CELL = Math.max(12, Math.min(110,")
 
 # 3) the board grid has empty rows around smaller levels: lift the board by those rows so the
 #    flowers (not the empty space) start right under the top bar
