@@ -88,6 +88,7 @@ jobs:
           python scripts/patch-voice-wait.py
           python scripts/patch-rate-again.py
           python scripts/patch-hive-burst.py
+          python scripts/patch-open-quiet.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
