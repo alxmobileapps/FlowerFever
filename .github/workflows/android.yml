@@ -82,6 +82,7 @@ jobs:
           python scripts/patch-sharp-board.py
           python scripts/patch-collect-fix.py
           python scripts/patch-save-safety.py
+          python scripts/patch-diagonal-fill.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
