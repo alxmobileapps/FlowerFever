@@ -235,7 +235,7 @@
       async load() {
         if (!user) return null;
         try { const r = await FS.getDocument({ reference: path(user.uid) }); const d = r && r.snapshot && r.snapshot.data; return d && d.save ? JSON.parse(d.save) : null; }
-        catch (e) { log('cloud load', e); return null; }
+        catch (e) { log('cloud load', e); throw e; }   // a failed read is not "no save": the game must not overwrite the cloud copy
       },
       async deleteData() {
         if (!user) return;
