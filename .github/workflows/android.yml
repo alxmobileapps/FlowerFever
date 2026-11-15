@@ -85,6 +85,7 @@ jobs:
           python scripts/patch-diagonal-fill.py
           python scripts/patch-coin-reward.py
           python scripts/patch-sell-kept.py
+          python scripts/patch-voice-wait.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
