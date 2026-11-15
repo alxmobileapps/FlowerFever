@@ -1,7 +1,7 @@
 """No between-level (interstitial) ad right after a rewarded ad or the rating window.
 
 If the player watched a rewarded ad (x2 coins, +5 moves, a life, a lifeline, diamonds) or saw the
-"Rate Flower Fever" window in the last 2 minutes, the between-level ad is skipped for that level and
+"Rate Flower Fever" window in the last 5 minutes, the between-level ad is skipped for that level and
 shown at a later level change instead (the count of finished rounds is kept, not reset).
 Runs after the .patch files (it edits the final www/index.html).
 """
@@ -21,7 +21,7 @@ def rep(before, after):
 rep("""function interstitialDue(asChallenge, targetLevel = levelIdx) {
   return booted &&""", """// QUIET_ADS_PATCH: time of the last rewarded ad / rating window
 let lastBigScreen = 0;
-const QUIET_MS = 2 * 60 * 1000;
+const QUIET_MS = 5 * 60 * 1000;
 function interstitialDue(asChallenge, targetLevel = levelIdx) {
   return Date.now() - lastBigScreen > QUIET_MS && booted &&""")
 rep("""async function useBooster(m) {""", """function watchAdQuiet(kind) { lastBigScreen = Date.now(); return watchAdRaw(kind).finally(() => { lastBigScreen = Date.now(); }); }
