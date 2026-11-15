@@ -77,6 +77,7 @@ jobs:
           python scripts/patch-shuffle-goal.py
           python scripts/patch-switch-lifeline.py
           python scripts/patch-quiet-ads.py
+          python scripts/patch-continue-7.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
