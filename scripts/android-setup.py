@@ -26,11 +26,16 @@ def manifest(s):
         s = re.sub(r"(<application\b[^>]*>)", lambda m: m.group(1) +
                    '\n        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="'
                    + ADMOB_APP_ID + '"/>', s, count=1)
-    for perm in ("android.permission.POST_NOTIFICATIONS", "com.android.vending.BILLING", "android.permission.VIBRATE", "android.permission.READ_MEDIA_IMAGES"):
+    for perm in ("android.permission.POST_NOTIFICATIONS", "com.android.vending.BILLING", "android.permission.VIBRATE"):
         if perm not in s:
             s = s.replace("</manifest>", f'    <uses-permission android:name="{perm}"/>\n</manifest>', 1)
-    if "WRITE_EXTERNAL_STORAGE" not in s:   # saving bouquet pictures on Android 9 and older
-        s = s.replace("</manifest>", '    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n</manifest>', 1)
+    # No photo/storage access: pictures are saved or sent through the share menu (Google Play's photo and video
+    # permissions policy). Also strip these if a library tries to add them.
+    if 'xmlns:tools' not in s:
+        s = s.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ', 1)
+    for perm in ("READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO", "READ_MEDIA_VISUAL_USER_SELECTED", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"):
+        s = re.sub(r'\s*<uses-permission[^>]*android\.permission\.' + perm + r'"[^>]*/>', '', s)
+        s = s.replace("</manifest>", f'    <uses-permission android:name="android.permission.{perm}" tools:node="remove"/>\n</manifest>', 1)
     return s
 edit(A / "AndroidManifest.xml", manifest)
 print("AdMob app id:", ADMOB_APP_ID)

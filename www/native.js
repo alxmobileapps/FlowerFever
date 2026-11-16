@@ -316,8 +316,10 @@
     };
   }
 
-  /* ---------- Bouquet pictures: save to the phone's photos, or share (Messenger, Facebook…) ---------- */
-  const FSys = P('Filesystem'), Shr = P('Share'), Med = P('Media');
+  /* ---------- Bouquet pictures: save or share (Messenger, Facebook…) through the phone's share menu ---------- */
+  // No photo-library permission (Google Play photo/video permissions policy): "Save" opens the share menu,
+  // where the person can pick Photos, Drive, Files and so on.
+  const FSys = P('Filesystem'), Shr = P('Share');
   if (FSys && Shr) {
     const toCache = async (dataUrl, name) => {
       const r = await FSys.writeFile({ path: name, data: dataUrl.split(',')[1], directory: 'CACHE' });
@@ -326,16 +328,7 @@
     window.FlowerFeverShare = {
       async save(dataUrl, name) {
         const uri = await toCache(dataUrl, name);
-        if (Med) {
-          try {
-            let albums = (await Med.getAlbums()).albums || [], al = albums.find(a => a.name === 'Flower Fever');
-            if (!al) { await Med.createAlbum({ name: 'Flower Fever' }); albums = (await Med.getAlbums()).albums || []; al = albums.find(a => a.name === 'Flower Fever'); }
-            await Med.savePhoto({ path: uri, albumIdentifier: al && al.identifier, fileName: name.replace(/\.png$/, '') });
-            return true;
-          } catch (e) { log('save photo', e); }
-        }
-        // no photo library access: let the person pick "Save" from the share menu
-        try { await Shr.share({ title: 'Save picture', files: [uri] }); return true; } catch (e) { return false; }
+        try { await Shr.share({ title: 'Save picture', files: [uri], dialogTitle: 'Save your picture' }); return true; } catch (e) { return false; }
       },
       async share(dataUrl, name, text) {
         const uri = await toCache(dataUrl, name);
