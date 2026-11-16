@@ -210,10 +210,16 @@
   const FAuth = P('FirebaseAuthentication'), FS = P('FirebaseFirestore');
   if (FAuth && FS && window.FLOWER_FIREBASE) {
     const path = uid => `players/${uid}`;
-    let user = null;
+    // `user` is the Google account only. Players who never signed in get an anonymous Firebase user (`fbUser`),
+    // used just for the Player ID and friends' gardens (window.FlowerFeverSocial below).
+    let user = null, fbUser = null;
     const listeners = [];
-    const setUser = u => { user = u ? { uid: u.uid, name: u.displayName || '', email: u.email || '', photo: u.photoUrl || '' } : null; listeners.forEach(f => { try { f(user); } catch (e) {} }); };
-    FAuth.getCurrentUser().then(r => setUser(r && r.user)).catch(() => {});
+    const setUser = u => {
+      fbUser = u || null;
+      user = u && !u.isAnonymous ? { uid: u.uid, name: u.displayName || '', email: u.email || '', photo: u.photoUrl || '' } : null;
+      listeners.forEach(f => { try { f(user); } catch (e) {} });
+    };
+    const firstUser = FAuth.getCurrentUser().then(r => setUser(r && r.user)).catch(() => {});
     try { FAuth.addListener('authStateChange', r => setUser(r && r.user)); } catch (e) {}
     window.FlowerFeverAccount = {
       get user() { return user; },
@@ -222,7 +228,17 @@
         // Patched at build time to GetSignInWithGoogleOption: explicit button flow,
         // including add-account and reauthentication, rather than the bottom sheet.
         // Preserve errors/cancellation; do not hide them behind a second sign-in attempt.
-        const r = await FAuth.signInWithGoogle({ useCredentialManager: true });
+        let r;
+        if (fbUser && fbUser.isAnonymous) {
+          // keep the same Firebase user (and so the same Player ID) by adding Google to it
+          try { r = await FAuth.linkWithGoogle({ useCredentialManager: true }); }
+          catch (e) {
+            const why = String((e && e.code) || '') + ' ' + String((e && e.message) || '');
+            if (!/credential-already-in-use|already (been )?(linked|associated|in use)/i.test(why)) throw e;   // cancelled or failed: report it
+            // this Google account already plays on another phone: sign in to it instead (its saved Player ID comes back with the save)
+            r = await FAuth.signInWithGoogle({ useCredentialManager: true });
+          }
+        } else r = await FAuth.signInWithGoogle({ useCredentialManager: true });
         if (!r || !r.user || !r.user.uid) throw new Error('Google sign-in returned no user. Please try again.');
         setUser(r.user); return user;
       },
@@ -243,6 +259,27 @@
         try { await FAuth.deleteUser(); } catch (e) {}
         setUser(null);
       }
+    };
+
+    /* Player ID + friends' gardens: public profiles in profiles/{PLAYER_ID} (see firestore.rules).
+       Works for everyone: players who aren't signed in with Google get an anonymous Firebase user.
+       (Turn on Authentication → Sign-in method → Anonymous in the Firebase console.) */
+    let anonWait = null;
+    const authUid = async () => {
+      await firstUser;
+      if (fbUser) return fbUser.uid;
+      if (!anonWait) anonWait = FAuth.signInAnonymously()
+        .then(r => { anonWait = null; if (r && r.user) { setUser(r.user); return r.user.uid; } return null; })
+        .catch(e => { anonWait = null; log('anonymous sign-in', e); return null; });
+      return anonWait;
+    };
+    const needUid = async () => { const u = await authUid(); if (!u) throw new Error('offline: not signed in'); return u; };
+    window.FlowerFeverSocial = {
+      uid: authUid,
+      async get(ref) { await needUid(); const r = await FS.getDocument({ reference: ref }); return (r && r.snapshot && r.snapshot.data) || null; },
+      async set(ref, data) { await needUid(); await FS.setDocument({ reference: ref, data }); },
+      async del(ref) { await needUid(); await FS.deleteDocument({ reference: ref }); },
+      async list(ref) { await needUid(); const r = await FS.getCollection({ reference: ref }); return ((r && r.snapshots) || []).filter(s => s.data).map(s => ({ id: s.id, data: s.data })); }
     };
   }
 

@@ -40,6 +40,22 @@ Real ids are in **`www/ads-config.js`**. Banner under the board during levels, a
 Put `google-services.json` (Android app `com.alxmobileapps.flowerfever`) in the repo root and push.
 The build then adds Firebase Analytics automatically.
 
+## Player ID and friends' gardens
+
+`scripts/patch-social.py` (runs at build time) adds:
+
+- a **Player ID** (`FF-XXXXXX`) and a nickname for every player (Profile and Home → Friends),
+- **Friends**: type a friend's ID to look at their garden; visited gardens stay in the list,
+- **Water gift**: water a friend's garden once a day; you get 💧+1 (up to 5 a day), they get 💧+1 next time they play (up to 10 a day),
+- **Share** buttons for a level win and for your garden (picture with your Player ID and the Google Play link).
+
+It needs Firebase (`google-services.json`). In the Firebase console:
+
+1. **Authentication → Sign-in method → Anonymous → Enable** (players who never sign in with Google still get a Player ID).
+2. **Firestore → Rules**: paste the contents of `firestore.rules` and **Publish**. Without the new rules, profiles and water gifts are refused.
+
+Public profiles hold only the nickname, flower picture, level, stars and garden layout (no email or real name).
+
 ## Signed release for Google Play
 
 Repository secrets (Settings → Secrets and variables → Actions):
