@@ -159,16 +159,25 @@ function profileData(uid) {
 let socLast = "", socTimer = 0, socBusy = null, socAt = 0;
 function socSoon() { if (!SOC()) return; clearTimeout(socTimer); socTimer = setTimeout(() => socPublish(), Date.now() - socAt > 120000 ? 8000 : 60000); }
 const isDenied = e => /permission|denied|insufficient/i.test(String((e && (e.code || "")) + " " + ((e && e.message) || e || "")));
+// say what really went wrong, so a setup problem isn't mistaken for bad internet
+let socLastErr = null;
+const socWhy = e => {
+  const t = String((e && (e.code || "")) + " " + ((e && e.message) || e || ""));
+  if (/not signed in|anonymous|operation-not-allowed|admin-restricted/i.test(t)) return "Friends' gardens can't sign in yet. (Firebase: turn on Anonymous sign-in.)";
+  if (isDenied(e)) return "Friends' gardens are switched off on the server. (Firebase: publish the Firestore rules.)";
+  return "Couldn't reach the garden. Check your internet and try again.";
+};
 async function socPublish(force) {
   const S = SOC(); if (!S) return false;
   if (socBusy) return socBusy;
   socBusy = (async () => {
     socEnsure();
-    const uid = await S.uid(); if (!uid) return false;
+    const uid = await S.uid(); if (!uid) { socLastErr = new Error("not signed in"); return false; }
     const d = profileData(uid), sig = JSON.stringify({ ...d, at: 0 });
     if (!force && sig === socLast) return true;
-    try { await S.set("profiles/" + save.pid, d); socLast = sig; socAt = Date.now(); return true; }
+    try { await S.set("profiles/" + save.pid, d); socLast = sig; socAt = Date.now(); socLastErr = null; return true; }
     catch (e) {
+      socLastErr = e;
       if (!isDenied(e)) return false;
       // the ID belongs to someone else (very rare), or to this player's other account: pick a new one
       let other = null; try { other = await S.get("profiles/" + save.pid); } catch (e2) { return false; }
@@ -195,10 +204,10 @@ let socWaterNews = null;
 async function socWater(pid, name) {
   const S = SOC(); if (!S) return { msg: "Friends' gardens work in the Flower Fever app." };
   if (socWateredToday(pid)) return { msg: "You already watered this garden today." };
-  if (!await socPublish()) return { msg: "Couldn't reach the garden. Check your internet and try again." };
+  if (!await socPublish()) return { msg: socWhy(socLastErr) };
   const today = dayKey();
   try { await S.set(`profiles/${pid}/water/${save.pid}_${today}`, { from: save.pid, name: save.nick, day: today, at: Date.now() }); }
-  catch (e) { if (!isDenied(e)) return { msg: "Couldn't reach the garden. Check your internet and try again." }; save.watered = { ...(save.watered || {}), [pid]: today }; persist(); return { msg: "You already watered this garden today." }; }
+  catch (e) { if (!isDenied(e)) return { msg: socWhy(e) }; save.watered = { ...(save.watered || {}), [pid]: today }; persist(); return { msg: "You already watered this garden today." }; }
   const w = {}; Object.entries(save.watered || {}).forEach(([k, v]) => { if (v === today) w[k] = v; }); w[pid] = today; save.watered = w;
   if (!save.waterGave || save.waterGave.d !== today) save.waterGave = { d: today, n: 0 };
   let got = 0; if (save.waterGave.n < WATER_GIVE_MAX) { save.waterGave.n++; got = 1; farm().water += 1; farm().xp += WATER_XP; }
@@ -209,10 +218,10 @@ async function socGift(pid, name) {
   const S = SOC(); if (!S) return { msg: "Friends' gardens work in the Flower Fever app." };
   if (socGiftedToday(pid)) return { msg: "You already sent a gift to this friend today." };
   if (farm().coins < COIN_GIFT) return { msg: `You need ${COIN_GIFT} flower coins to send a gift.`, short: true };
-  if (!await socPublish()) return { msg: "Couldn't reach the garden. Check your internet and try again." };
+  if (!await socPublish()) return { msg: socWhy(socLastErr) };
   const today = dayKey();
   try { await S.set(`profiles/${pid}/coins/${save.pid}_${today}`, { from: save.pid, name: save.nick, day: today, n: COIN_GIFT, at: Date.now() }); }
-  catch (e) { if (!isDenied(e)) return { msg: "Couldn't reach the garden. Check your internet and try again." }; save.gifted = { ...(save.gifted || {}), [pid]: today }; persist(); return { msg: "You already sent a gift to this friend today." }; }
+  catch (e) { if (!isDenied(e)) return { msg: socWhy(e) }; save.gifted = { ...(save.gifted || {}), [pid]: today }; persist(); return { msg: "You already sent a gift to this friend today." }; }
   const f = farm(); f.coins -= COIN_GIFT; f.xp += GIFT_XP;   // the coins leave only after the gift is safely sent
   const g = {}; Object.entries(save.gifted || {}).forEach(([k, v]) => { if (v === today) g[k] = v; }); g[pid] = today; save.gifted = g;
   addFriend({ p: pid, n: name }); persist(); track("friend_gift", {});
@@ -331,7 +340,7 @@ async function visitFriend(pid, back, msgEl) {
   if (msgEl) msgEl.textContent = "Opening garden…";
   let d = null;
   try { d = await S.get("profiles/" + pid); }
-  catch (e) { if (msgEl && msgEl.isConnected) msgEl.textContent = "Couldn't reach the garden. Check your internet and try again."; return; }
+  catch (e) { if (msgEl && msgEl.isConnected) msgEl.textContent = socWhy(e); return; }
   if (!d) { if (msgEl && msgEl.isConnected) msgEl.textContent = `No garden found for ${pidShow(pid)}. Check the letters and try again.`; return; }
   let g = {}; try { g = JSON.parse(d.g || "{}"); } catch (e) {}
   const name = String(d.name || "Gardener").slice(0, 16);
