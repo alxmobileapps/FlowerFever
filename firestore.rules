@@ -52,6 +52,18 @@ service cloud.firestore {
       }
     }
 
+    // Block & report: a player reports another player (id: <reporter Player ID>_<reported Player ID>).
+    // Only the developer reads them (Firebase console); players can only create their own reports.
+    match /reports/{rid} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'by', 'why', 'at'])
+        && request.resource.data.pid is string && request.resource.data.by is string
+        && request.resource.data.name is string && request.resource.data.name.size() <= 16
+        && request.resource.data.why is string && request.resource.data.why.size() <= 40
+        && rid == request.resource.data.by + '_' + request.resource.data.pid
+        && get(/databases/$(database)/documents/profiles/$(request.resource.data.by)).data.uid == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

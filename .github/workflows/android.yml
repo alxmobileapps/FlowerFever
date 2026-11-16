@@ -94,6 +94,7 @@ jobs:
           python scripts/patch-home-rows.py
           python scripts/patch-portal-ends.py
           python scripts/patch-tutorial-coins.py
+          python scripts/patch-ugc-safety.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
