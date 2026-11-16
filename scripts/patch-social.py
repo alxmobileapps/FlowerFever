@@ -9,6 +9,7 @@
 - Coin gift: send 100 of your flower coins to a friend, once per friend a day (+2 Garden XP for you),
   after you have planted your first flower in My Garden.
   Each player can receive up to 300 coins a day; more gifts wait for the next day. Watering gives +1 Garden XP.
+- Gifts arrive live while the game is open (Firestore listeners); the window shows on the Home screen.
 - Share: a picture of a level win (level-complete window) or of your garden (Friends window), with your Player ID
   and the Google Play link. Shares the existing once-a-day +1 diamond with bouquet sharing.
 - Home: a "Friends' Gardens" row under "View My Garden" (only in the app, where Firebase is set up).
@@ -476,11 +477,24 @@ async function shareGarden(btn) {
 }
 
 /* --- start: publish my profile, collect water gifts, and tell the player on the home screen --- */
-setTimeout(async () => { if (!SOC()) return; socEnsure(); await socPublish(true); await socClaimAll(); if (socWaterNews && homeOpen) { const e = document.querySelector("#nFriends .h3new"); if (e) e.textContent = socBadge(); } }, 4000);
-let socClaiming = false;
-async function socClaimAll() { if (socClaiming) return; socClaiming = true; try { await socClaimWater(); await socClaimCoins(); } finally { socClaiming = false; } }   // both first, then one window
+setTimeout(async () => { if (!SOC()) return; socEnsure(); await socPublish(true); await socClaimAll(); socWatch(); }, 4000);
+let socClaiming = false, socAgain = false;
+async function socClaimAll() {   // both first, then one window
+  if (socClaiming) { socAgain = true; return; }
+  socClaiming = true;
+  try { do { socAgain = false; await socClaimWater(); await socClaimCoins(); } while (socAgain); } finally { socClaiming = false; }
+  const e = document.querySelector("#nFriends .h3new"); if (e) e.textContent = socBadge();
+}
+// gifts arrive live while the game is open (Firestore listeners on my water and coin gifts)
+let socWatchPid = "", socUnwatch = [], socWatchT = 0;
+async function socWatch() {
+  const S = SOC(); if (!S || !S.watch || !save.pid || socWatchPid === save.pid) return;
+  socUnwatch.forEach(f => f()); socUnwatch = []; socWatchPid = save.pid;
+  const ping = n => { if (n > 0) { clearTimeout(socWatchT); socWatchT = setTimeout(socClaimAll, 600); } };
+  for (const k of ["water", "coins"]) { try { socUnwatch.push(await S.watch(`profiles/${save.pid}/${k}`, ping)); } catch (e) { socWatchPid = ""; } }
+}
 setInterval(() => { if (socWaterNews && !socClaiming && homeOpen && overlay.hidden && !document.getElementById("gardenView")) showWaterNews(() => { hide(); showHome(); }); }, 2500);
-document.addEventListener("visibilitychange", () => { if (!SOC()) return; if (document.hidden) socPublish(); else setTimeout(socClaimAll, 1500); });
+document.addEventListener("visibilitychange", () => { if (!SOC()) return; if (document.hidden) socPublish(); else setTimeout(() => { socClaimAll(); socWatch(); }, 1500); });
 
 '''
 rep("/* ============ Home screen ============ */", code + "/* ============ Home screen ============ */")

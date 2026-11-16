@@ -292,7 +292,16 @@
       async get(ref) { await needUid(); const r = await FS.getDocument({ reference: ref }); return (r && r.snapshot && r.snapshot.data) || null; },
       async set(ref, data) { await needUid(); await FS.setDocument({ reference: ref, data }); },
       async del(ref) { await needUid(); await FS.deleteDocument({ reference: ref }); },
-      async list(ref) { await needUid(); const r = await FS.getCollection({ reference: ref }); return ((r && r.snapshots) || []).filter(s => s.data).map(s => ({ id: s.id, data: s.data })); }
+      async list(ref) { await needUid(); const r = await FS.getCollection({ reference: ref }); return ((r && r.snapshots) || []).filter(s => s.data).map(s => ({ id: s.id, data: s.data })); },
+      // live updates: calls cb(count) whenever the collection changes (first call right away); returns a function that stops it
+      async watch(ref, cb) {
+        await needUid();
+        const id = await FS.addCollectionSnapshotListener({ reference: ref }, (ev, err) => {
+          if (err) { log('watch ' + ref, err); return; }
+          try { cb(((ev && ev.snapshots) || []).filter(x => x.data).length); } catch (e) {}
+        });
+        return () => { FS.removeSnapshotListener({ callbackId: id }).catch(() => {}); };
+      }
     };
   }
 
