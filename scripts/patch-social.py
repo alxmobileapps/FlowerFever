@@ -315,11 +315,29 @@ function idLine(g, S, y) {
   if (!SOC() || !save.pid) return;
   g.textAlign = "center"; g.fillStyle = "#7a3a55"; g.font = '800 40px "Baloo 2","Trebuchet MS",sans-serif'; g.fillText(`Visit my garden! Player ID: ${pidShow(save.pid)}`, S / 2, y);
 }
+// the game's own title, as on the home screen: "Flower" + spinning rainbow flower + "Fever" in Pacifico, white with a pink rim and a dark outline
+async function drawGameLogo(g, cx, base, px) {
+  try { await document.fonts.load(`400 ${px}px Pacifico`); } catch (e) {}
+  const rb = await loadImg(SPRITE_SRC.rainbow), em = v => v * px;
+  g.save(); g.font = `400 ${px}px Pacifico, cursive`; g.textBaseline = "alphabetic"; g.textAlign = "left";
+  const w1 = g.measureText("Flower").width, w2 = g.measureText("Fever").width, rs = em(.6), gap1 = em(.03), gap2 = em(.05);
+  const total = w1 + gap1 + rs + gap2 + w2, x1 = cx - total / 2, xr = x1 + w1 + gap2, x2 = xr + rs + gap1;
+  const words = [["Flower", x1], ["Fever", x2]];
+  const each = f => words.forEach(([t, x]) => f(t, x));
+  g.shadowColor = "rgba(255,46,166,.6)"; g.shadowBlur = em(.26); g.fillStyle = "#ff3fae"; each((t, x) => g.fillText(t, x, base)); g.shadowBlur = 0; g.shadowColor = "transparent";
+  g.fillStyle = "#5a0718";   // dark outline, like the home screen's text shadows
+  [[.068, 0], [-.068, 0], [0, .068], [0, -.068], [.054, .054], [-.054, .054], [.054, -.054], [-.054, -.054], [.041, .081], [-.041, .081], [.081, .041], [-.081, .041], [0, .095]]
+    .forEach(([dx, dy]) => each((t, x) => g.fillText(t, x + em(dx), base + em(dy))));
+  g.lineJoin = "round"; g.strokeStyle = "#ff3fae"; g.lineWidth = em(.068); each((t, x) => g.strokeText(t, x, base));
+  g.fillStyle = "#fff0fa"; each((t, x) => g.fillText(t, x, base));
+  if (rb) { g.shadowColor = "rgba(255,200,40,.95)"; g.shadowBlur = em(.08); g.drawImage(rb, xr, base + em(.04) - rs, rs, rs); }
+  g.restore();
+}
 async function winPng(lv, st, sc) {
   const S = 1080, c = document.createElement("canvas"); c.width = c.height = S; const g = c.getContext("2d");
   const bg = g.createLinearGradient(0, 0, 0, S); bg.addColorStop(0, "#fff6fa"); bg.addColorStop(1, "#fde3ee"); g.fillStyle = bg; g.fillRect(0, 0, S, S);
   g.fillStyle = "rgba(255,255,255,.8)"; g.beginPath(); g.arc(S / 2, 560, 400, 0, Math.PI * 2); g.fill();
-  const logo = await loadImg(LOGO_SRC); if (logo) { let h = 230, w = h * logo.width / logo.height; if (w > 760) { w = 760; h = w * logo.height / logo.width; } g.drawImage(logo, S / 2 - w / 2, 40, w, h); }
+  await drawGameLogo(g, S / 2, 190, 150);
   const fl = await loadImg(avImg(save.avatar ?? 0)); if (fl) { g.drawImage(fl, 110, 600, 150, 150); g.drawImage(fl, S - 260, 600, 150, 150); }
   g.textAlign = "center"; g.fillStyle = "#e8467e"; g.font = '800 64px "Baloo 2","Trebuchet MS",sans-serif'; g.fillText("I finished", S / 2, 345);
   g.fillStyle = "#5a2e44"; g.font = '800 170px "Baloo 2","Trebuchet MS",sans-serif'; g.fillText(`Level ${lv}`, S / 2, 520);
