@@ -10,7 +10,7 @@
   Each player can receive up to 300 coins a day; more gifts wait for the next day. Watering gives +1 Garden XP.
 - Share: a picture of a level win (level-complete window) or of your garden (Friends window), with your Player ID
   and the Google Play link. Shares the existing once-a-day +1 diamond with bouquet sharing.
-- Home: "View My Garden" becomes two buttons, "My Garden" and "Friends" (only in the app, where Firebase is set up).
+- Home: a "Friends' Gardens" row under "View My Garden" (only in the app, where Firebase is set up).
 Runs after the other patches (it edits the final www/index.html). The rules are in firestore.rules.
 """
 from pathlib import Path
@@ -106,7 +106,7 @@ rep("""    el.querySelector("#prDone").onclick = back;""", """    el.querySelect
 
 # --- Home: My Garden | Friends ---------------------------------------------------------------------------
 rep("""<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>""",
-    """${SOC() ? `<div class="h3pair"><button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>My Garden</span><i>›</i></button><button class="h3row" id="nFriends"><b class="h3fr" aria-hidden="true">👥</b><span>Friends</span><em class="h3new">${socBadge()}</em><i>›</i></button></div>` : `<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>`}""")
+    """<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>${SOC() ? `<button class="h3row" id="nFriends"><b class="h3fr" aria-hidden="true">👥</b><span>Friends' Gardens</span><em class="h3new">${socBadge()}</em><i>›</i></button>` : ""}""")
 rep("""  el.querySelector("#nGarden").onclick = () => showMyGarden(back);""",
     """  el.querySelector("#nGarden").onclick = () => showMyGarden(back);
   { const nf = el.querySelector("#nFriends"); if (nf) nf.onclick = () => showFriends(back); }""")
@@ -472,14 +472,7 @@ rep("/* ============ Home screen ============ */", code + "/* ============ Home 
 
 css = """
 /* SOCIAL_PATCH */
-.h3pair{display:flex;gap:calc(24 * var(--u));width:calc(873 * var(--u));margin-top:calc(26 * var(--u))}
-.h3pair>.h3row{margin:0!important;height:calc(120 * var(--u))!important}
-.h3pair .h3row{width:auto;flex:1 1 0;min-width:0;gap:calc(14 * var(--u));padding:0 calc(22 * var(--u)) 0 calc(24 * var(--u))}
-.h3pair .h3row span{font-size:calc(46 * var(--u));overflow:hidden;text-overflow:ellipsis}
-.h3pair .h3row img{width:calc(84 * var(--u))}
-.h3pair .h3row em{font-size:calc(32 * var(--u));padding:calc(4 * var(--u)) calc(14 * var(--u))}
-.h3pair .h3row i{font-size:calc(56 * var(--u))}
-.h3fr{flex:none;font-size:calc(64 * var(--u));width:calc(84 * var(--u));text-align:center;line-height:1}
+.h3fr{flex:none;font-size:calc(74 * var(--u));width:calc(104 * var(--u));text-align:center;line-height:1}
 .h3new:not(:empty){background:#d8eefc!important;color:#1d5f8a}
 .frcard{max-height:92vh;overflow:auto}
 .frme{gap:6px!important}

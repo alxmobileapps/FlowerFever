@@ -31,16 +31,29 @@
     st.textContent = '#adBanner{background:none!important;color:transparent!important;border:0!important;box-shadow:none!important}#adBanner *{visibility:hidden!important}';
     document.head.appendChild(st);
 
-    let bannerShown = false, bannerWanted = false;
+    // One banner call at a time, and after each one the banner is brought in line with what the game wants now.
+    // (Before, leaving a level while the first banner was still loading let it appear later on Home or in the garden.)
+    let bannerShown = false, bannerOnScreen = false, bannerWanted = false, bannerRun = null;
+    const bannerApply = () => {
+      if (bannerRun) return bannerRun;
+      bannerRun = (async () => {
+        await ready;
+        for (let tries = 0; tries < 4 && bannerWanted !== bannerOnScreen; tries++) {
+          const want = bannerWanted;
+          try {
+            if (want) {
+              if (bannerShown) await AdMob.resumeBanner();
+              else { await AdMob.showBanner({ adId: cfg.bannerId, adSize: 'BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: test }); bannerShown = true; }
+            } else if (bannerShown) await AdMob.hideBanner();
+            bannerOnScreen = want;
+          } catch (e) { log('banner', e); if (want) break; }   // a banner that failed to load: try again next time it is wanted
+        }
+      })().finally(() => { bannerRun = null; if (bannerWanted !== bannerOnScreen && !bannerWanted) bannerApply(); });
+      return bannerRun;
+    };
     const banner = {
-      async show() {
-        bannerWanted = true; await ready; if (!bannerWanted) return;
-        try {
-          if (bannerShown) await AdMob.resumeBanner();
-          else { await AdMob.showBanner({ adId: cfg.bannerId, adSize: 'BANNER', position: 'BOTTOM_CENTER', margin: 0, isTesting: test }); bannerShown = true; }
-        } catch (e) { log('banner', e); }
-      },
-      async hide() { bannerWanted = false; await ready; try { if (bannerShown) await AdMob.hideBanner(); } catch (e) {} }
+      show() { bannerWanted = true; return bannerApply(); },
+      hide() { bannerWanted = false; return bannerApply(); }
     };
 
     // full-screen ads are loaded ahead of time so they open instantly
