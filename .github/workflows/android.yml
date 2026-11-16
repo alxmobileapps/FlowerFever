@@ -90,6 +90,7 @@ jobs:
           python scripts/patch-hive-burst.py
           python scripts/patch-open-quiet.py
           python scripts/patch-social.py
+          python scripts/patch-no-corner-flowers.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
