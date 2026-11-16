@@ -6,7 +6,8 @@
 - Friends: type a friend's ID to visit their garden (look only). Visited gardens are kept in a friends list.
 - Water gift: water a friend's garden once a day. You get 💧+1 (up to 5 a day), they get 💧+1 when they next
   open the game (up to 10 a day), and they see who watered so they can water back.
-- Coin gift: send 100 of your flower coins to a friend, once per friend a day (+2 Garden XP for you).
+- Coin gift: send 100 of your flower coins to a friend, once per friend a day (+2 Garden XP for you),
+  after you have planted your first flower in My Garden.
   Each player can receive up to 300 coins a day; more gifts wait for the next day. Watering gives +1 Garden XP.
 - Share: a picture of a level win (level-complete window) or of your garden (Friends window), with your Player ID
   and the Google Play link. Shares the existing once-a-day +1 diamond with bouquet sharing.
@@ -214,8 +215,12 @@ async function socWater(pid, name) {
   addFriend({ p: pid, n: name }); persist(); track("friend_water", { got });
   return { ok: true, got };
 }
+// coin gifts start once the player has planted their first flower (so new players don't give away their starting coins)
+const gardenStarted = () => { const f = save.farm; return !!(f && (f.tut || [...(f.beds || []), ...Object.values(f.areas || {})].some(s => (s.plots || []).some(Boolean)))); };
+const GIFT_LOCKED = "Plant your first flower in My Garden first. Then you can send coin gifts to friends.";
 async function socGift(pid, name) {
   const S = SOC(); if (!S) return { msg: "Friends' gardens work in the Flower Fever app." };
+  if (!gardenStarted()) return { msg: GIFT_LOCKED };
   if (socGiftedToday(pid)) return { msg: "You already sent a gift to this friend today." };
   if (farm().coins < COIN_GIFT) return { msg: `You need ${COIN_GIFT} flower coins to send a gift.`, short: true };
   if (!await socPublish()) return { msg: socWhy(socLastErr) };
@@ -229,6 +234,7 @@ async function socGift(pid, name) {
 }
 // "Send 100 coins to Rosa?" then send; show = where to draw the question (garden sheet or a window)
 function giftAsk(pid, name, done, sheet) {
+  if (!gardenStarted()) { sheet(`<h3>🎁 Gift ${FC_SVG}${COIN_GIFT}</h3><p>${GIFT_LOCKED}</p><div class="btns"><button class="btn alt" data-x>OK</button></div>`, () => {}); return; }
   const have = farm().coins, can = have >= COIN_GIFT;
   const html = `<h3>🎁 Gift ${FC_SVG}${COIN_GIFT}</h3><p>${can ? `Send <b>${COIN_GIFT}</b> of your flower coins to <b>${socEsc(name)}</b>?` : `You need ${FC_SVG}<b>${COIN_GIFT}</b> to send a gift.`}</p><p class="llnote">You have ${FC_SVG}<b>${have}</b>${can ? ` · You get ⭐<b>+${GIFT_XP}</b> Garden XP` : ""}</p>
     <div class="btns">${can ? `<button class="btn" id="gfYes">Send gift</button>` : ""}<button class="btn alt" id="gfNo" data-x>${can ? "Not now" : "OK"}</button></div>`;
