@@ -6,6 +6,8 @@
 - Friends: type a friend's ID to visit their garden (look only). Visited gardens are kept in a friends list.
 - Water gift: water a friend's garden once a day. You get 💧+1 (up to 5 a day), they get 💧+1 when they next
   open the game (up to 10 a day), and they see who watered so they can water back.
+- Coin gift: send 100 of your flower coins to a friend, once per friend a day (+2 Garden XP for you).
+  Each player can receive up to 300 coins a day; more gifts wait for the next day. Watering gives +1 Garden XP.
 - Share: a picture of a level win (level-complete window) or of your garden (Friends window), with your Player ID
   and the Google Play link. Shares the existing once-a-day +1 diamond with bouquet sharing.
 - Home: "View My Garden" becomes two buttons, "My Garden" and "Friends" (only in the app, where Firebase is set up).
@@ -60,11 +62,12 @@ rep("""  let view = -1, moveFrom = null, moving = false, alive = true, area = nu
       BEDS.map((b, bi) => `<div class="fbed${f.beds[bi].open ? "" : " locked"}" data-b="${bi}">${f.beds[bi].open ? b.cells.map((_, i) => cellHTML(bi, i, false)).join("") : ""}</div>`).join("") + xareasHTML();
     stage.querySelectorAll("button").forEach(b => { b.disabled = true; b.tabIndex = -1; });
     stage.querySelectorAll(".flock").forEach(x => x.remove());
-    const done = socWateredToday(visit.pid);
+    const done = socWateredToday(visit.pid), gave = socGiftedToday(visit.pid);
     hint.innerHTML = `<b>${socEsc(visit.name)}</b>'s garden · Level ${visit.lv} · Garden Lv ${farmLevel(f.xp).lv}`;
-    btns.innerHTML = `<button class="btn alt" id="fBack">⬅ Back</button><button class="btn fwater" id="vWater"${done ? " disabled" : ""}>${done ? "✓ Watered today" : "💧 Water"}</button>`;
+    btns.innerHTML = `<button class="btn alt" id="fBack">⬅ Back</button><button class="btn fwater" id="vWater"${done ? " disabled" : ""}>${done ? "✓ Watered" : "💧 Water"}</button><button class="btn fgift" id="vGift"${gave ? " disabled" : ""}>${gave ? "✓ Gifted" : `🎁 ${FC_SVG}${COIN_GIFT}`}</button>`;
     btns.querySelector("#fBack").onclick = close;
     if (!done) btns.querySelector("#vWater").onclick = waterIt;
+    if (!gave) btns.querySelector("#vGift").onclick = () => giftAsk(visit.pid, visit.name, ok => { if (!alive) return; render(); if (ok) { sfx("create"); haptic("swap"); sheetShow(`<h3>🎁 Gift sent!</h3><p><b>${socEsc(visit.name)}</b> gets ${FC_SVG}<b>${COIN_GIFT}</b> next time they play.</p><p class="fbig">⭐ <b>+${GIFT_XP}</b> Garden XP for you</p><div class="btns"><button class="btn" data-x>Lovely!</button></div>`); } }, (h, w) => sheetShow(h, w));
     spawnPets();
   }
   async function waterIt(e) {
@@ -74,7 +77,7 @@ rep("""  let view = -1, moveFrom = null, moving = false, alive = true, area = nu
     if (r && r.ok) {
       sfx("create"); haptic("swap"); render();
       for (let k = 0; k < 14; k++) { const d = document.createElement("i"); d.className = "fdrop"; d.textContent = "💧"; d.style.left = (15 + Math.random() * 70) + "%"; d.style.animationDelay = (Math.random() * .6) + "s"; stage.appendChild(d); setTimeout(() => d.remove(), 2200); }
-      sheetShow(`<h3>💧 Watered!</h3><p><b>${socEsc(visit.name)}</b> gets 💧<b>+1</b> next time they play.</p>${r.got ? `<p class="fbig">You get 💧<b>+1</b> too!</p>` : `<p>You've had today's ${WATER_GIVE_MAX} water gifts. Come back tomorrow for more!</p>`}<div class="btns"><button class="btn" data-x>Lovely!</button></div>`);
+      sheetShow(`<h3>💧 Watered!</h3><p><b>${socEsc(visit.name)}</b> gets 💧<b>+1</b> next time they play.</p>${r.got ? `<p class="fbig">You get 💧<b>+1</b> and ⭐<b>+${WATER_XP}</b> Garden XP!</p>` : `<p>You've had today's ${WATER_GIVE_MAX} water rewards. Come back tomorrow for more!</p>`}<div class="btns"><button class="btn" data-x>Lovely!</button></div>`);
     } else { b.disabled = false; b.textContent = "💧 Water"; sheetShow(`<h3>💧 Not watered</h3><p>${socEsc(r && r.msg || "Couldn't reach the garden. Check your internet and try again.")}</p><div class="btns"><button class="btn" data-x>OK</button></div>`); }
   }""")
 rep("""  function render() {
@@ -103,7 +106,7 @@ rep("""    el.querySelector("#prDone").onclick = back;""", """    el.querySelect
 
 # --- Home: My Garden | Friends ---------------------------------------------------------------------------
 rep("""<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>""",
-    """${SOC() ? `<div class="h3pair"><button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>My Garden</span><i>›</i></button><button class="h3row" id="nFriends"><b class="h3fr" aria-hidden="true">👥</b><span>Friends</span><em class="h3new">${socWaterNews ? "💧" + socWaterNews.names.length : ""}</em><i>›</i></button></div>` : `<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>`}""")
+    """${SOC() ? `<div class="h3pair"><button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>My Garden</span><i>›</i></button><button class="h3row" id="nFriends"><b class="h3fr" aria-hidden="true">👥</b><span>Friends</span><em class="h3new">${socBadge()}</em><i>›</i></button></div>` : `<button class="h3row" id="nGarden"><img alt="" src="${HOME_IMG.sproutpot}"><span>View My Garden</span><em>Lv ${farmLevel(farm().xp).lv}</em><i>›</i></button>`}""")
 rep("""  el.querySelector("#nGarden").onclick = () => showMyGarden(back);""",
     """  el.querySelector("#nGarden").onclick = () => showMyGarden(back);
   { const nf = el.querySelector("#nFriends"); if (nf) nf.onclick = () => showFriends(back); }""")
@@ -113,6 +116,7 @@ code = r'''
 const SOC = () => window.FlowerFeverSocial || null;
 const PLAY_URL = "https://play.google.com/store/apps/details?id=com.alxmobileapps.flowerfever";
 const WATER_GIVE_MAX = 5, WATER_GET_MAX = 10, FRIENDS_MAX = 60;
+const COIN_GIFT = 100, COIN_GET_MAX = 300, WATER_XP = 1, GIFT_XP = 2;   // a coin gift: once per friend a day, paid from your own coins; you can receive up to 300 a day (the rest waits for tomorrow)
 const socEsc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const dayKey = (d = new Date()) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 const pidShow = p => p ? p.slice(0, 2) + "-" + p.slice(2) : "";
@@ -125,6 +129,8 @@ function socEnsure() {   // a Player ID and a starting nickname for everyone
   if (ch) try { localStorage.setItem("petalpop.v1", JSON.stringify(save)); } catch (e) {}
 }
 const socWateredToday = pid => !!(save.watered && save.watered[pid] === dayKey());
+const socBadge = () => { const n = socWaterNews; if (!n) return ""; const k = (n.names || []).length + (n.cnames || []).length; return k ? (n.cnames && n.cnames.length ? "🎁" : "💧") + k : ""; };
+const socGiftedToday = pid => !!(save.gifted && save.gifted[pid] === dayKey());
 const shareBonusToday = () => { const f = farm(); return f.shareDay !== new Date().toDateString(); };
 
 // nicknames: free text, but no rude words (English and Filipino), checked after undoing look-alike letters
@@ -195,9 +201,49 @@ async function socWater(pid, name) {
   catch (e) { if (!isDenied(e)) return { msg: "Couldn't reach the garden. Check your internet and try again." }; save.watered = { ...(save.watered || {}), [pid]: today }; persist(); return { msg: "You already watered this garden today." }; }
   const w = {}; Object.entries(save.watered || {}).forEach(([k, v]) => { if (v === today) w[k] = v; }); w[pid] = today; save.watered = w;
   if (!save.waterGave || save.waterGave.d !== today) save.waterGave = { d: today, n: 0 };
-  let got = 0; if (save.waterGave.n < WATER_GIVE_MAX) { save.waterGave.n++; got = 1; farm().water += 1; }
+  let got = 0; if (save.waterGave.n < WATER_GIVE_MAX) { save.waterGave.n++; got = 1; farm().water += 1; farm().xp += WATER_XP; }
   addFriend({ p: pid, n: name }); persist(); track("friend_water", { got });
   return { ok: true, got };
+}
+async function socGift(pid, name) {
+  const S = SOC(); if (!S) return { msg: "Friends' gardens work in the Flower Fever app." };
+  if (socGiftedToday(pid)) return { msg: "You already sent a gift to this friend today." };
+  if (farm().coins < COIN_GIFT) return { msg: `You need ${COIN_GIFT} flower coins to send a gift.`, short: true };
+  if (!await socPublish()) return { msg: "Couldn't reach the garden. Check your internet and try again." };
+  const today = dayKey();
+  try { await S.set(`profiles/${pid}/coins/${save.pid}_${today}`, { from: save.pid, name: save.nick, day: today, n: COIN_GIFT, at: Date.now() }); }
+  catch (e) { if (!isDenied(e)) return { msg: "Couldn't reach the garden. Check your internet and try again." }; save.gifted = { ...(save.gifted || {}), [pid]: today }; persist(); return { msg: "You already sent a gift to this friend today." }; }
+  const f = farm(); f.coins -= COIN_GIFT; f.xp += GIFT_XP;   // the coins leave only after the gift is safely sent
+  const g = {}; Object.entries(save.gifted || {}).forEach(([k, v]) => { if (v === today) g[k] = v; }); g[pid] = today; save.gifted = g;
+  addFriend({ p: pid, n: name }); persist(); track("friend_gift", {});
+  return { ok: true };
+}
+// "Send 100 coins to Rosa?" then send; show = where to draw the question (garden sheet or a window)
+function giftAsk(pid, name, done, sheet) {
+  const have = farm().coins, can = have >= COIN_GIFT;
+  const html = `<h3>🎁 Gift ${FC_SVG}${COIN_GIFT}</h3><p>${can ? `Send <b>${COIN_GIFT}</b> of your flower coins to <b>${socEsc(name)}</b>?` : `You need ${FC_SVG}<b>${COIN_GIFT}</b> to send a gift.`}</p><p class="llnote">You have ${FC_SVG}<b>${have}</b>${can ? ` · You get ⭐<b>+${GIFT_XP}</b> Garden XP` : ""}</p>
+    <div class="btns">${can ? `<button class="btn" id="gfYes">Send gift</button>` : ""}<button class="btn alt" id="gfNo" data-x>${can ? "Not now" : "OK"}</button></div>`;
+  sheet(html, c => {
+    const y = c.querySelector("#gfYes"); if (!y) return;
+    y.onclick = async () => { y.disabled = true; y.textContent = "Sending…"; const r = await socGift(pid, name);
+      if (r.ok) done(true); else { y.remove(); const p = c.querySelector("p"); if (p) p.textContent = r.msg; done(false); } };
+  });
+}
+async function socClaimCoins() {
+  const S = SOC(); if (!S || !save.pid) return;
+  let docs; try { docs = await S.list(`profiles/${save.pid}/coins`); } catch (e) { return; }
+  if (!docs.length) return;
+  const today = dayKey(); if (!save.coinGot || save.coinGot.d !== today) save.coinGot = { d: today, n: 0 };
+  const names = []; let gain = 0;
+  for (const w of docs.sort((a, b) => ((a.data || {}).at || 0) - ((b.data || {}).at || 0))) {
+    if (save.coinGot.n + COIN_GIFT > COIN_GET_MAX) break;   // today's limit: the rest stays for tomorrow
+    try { await S.del(`profiles/${save.pid}/coins/${w.id}`); } catch (e) { continue; }   // each gift counts once
+    const d = w.data || {}; if (d.name && !names.includes(d.name)) names.push(String(d.name).slice(0, 16));
+    if (d.from) addFriend({ p: d.from, n: String(d.name || "").slice(0, 16), gb: today });
+    save.coinGot.n += COIN_GIFT; gain += COIN_GIFT;
+  }
+  if (gain) { farm().coins += gain; persist(); }
+  if (names.length) { const o = socWaterNews || { names: [], gain: 0 }; socWaterNews = { ...o, cnames: [...(o.cnames || []), ...names], coins: (o.coins || 0) + gain }; track("friend_gift_got", { n: names.length, gain }); }
 }
 async function socClaimWater() {
   const S = SOC(); if (!S || !save.pid) return;
@@ -213,14 +259,18 @@ async function socClaimWater() {
   }
   if (gain) farm().water += gain;
   persist();
-  if (names.length) { socWaterNews = { names: [...((socWaterNews && socWaterNews.names) || []), ...names], gain: ((socWaterNews && socWaterNews.gain) || 0) + gain }; track("friend_water_got", { n: names.length, gain }); }
+  if (names.length) { const o = socWaterNews || {}; socWaterNews = { ...o, names: [...(o.names || []), ...names], gain: (o.gain || 0) + gain }; track("friend_water_got", { n: names.length, gain }); }
 }
 function showWaterNews(back) {
   const n = socWaterNews; if (!n) return false; socWaterNews = null;
-  const who = n.names.length === 1 ? `<b>${socEsc(n.names[0])}</b>` : n.names.length === 2 ? `<b>${socEsc(n.names[0])}</b> and <b>${socEsc(n.names[1])}</b>` : `<b>${socEsc(n.names[0])}</b> and ${n.names.length - 1} friends`;
+  const who = l => l.length === 1 ? `<b>${socEsc(l[0])}</b>` : l.length === 2 ? `<b>${socEsc(l[0])}</b> and <b>${socEsc(l[1])}</b>` : `<b>${socEsc(l[0])}</b> and ${l.length - 1} friends`;
+  const w = n.names || [], c = n.cnames || [];
   sfx("create");
-  show(`<div class="ribbon">Water gift</div><div class="wdrops" aria-hidden="true">💧🌷💧</div><h2>${who} watered your garden!</h2>${n.gain ? `<p class="fbig">💧 <b>+${n.gain}</b> water for you</p>` : `<p>You've had today's ${WATER_GET_MAX} water gifts.</p>`}
-    <div class="btns"><button class="btn" id="wnBack">💧 Water back</button><button class="btn alt" id="wnOk">Lovely!</button></div>`, el => {
+  show(`<div class="ribbon">Gifts from friends</div><div class="wdrops" aria-hidden="true">${c.length ? "🎁" : "💧"}🌷${w.length ? "💧" : "🎁"}</div>
+    ${c.length ? `<h2>${who(c)} sent you ${FC_SVG}${n.coins}!</h2>` : ""}
+    ${w.length ? `<${c.length ? "p class=\"fbig\"" : "h2"}>${who(w)} watered your garden!</${c.length ? "p" : "h2"}>${n.gain ? `<p class="fbig">💧 <b>+${n.gain}</b> water for you</p>` : `<p>You've had today's ${WATER_GET_MAX} water gifts.</p>`}` : ""}
+    ${c.length && n.coins >= COIN_GET_MAX ? `<p class="llnote">You can get up to ${FC_SVG}${COIN_GET_MAX} a day. More gifts arrive tomorrow.</p>` : ""}
+    <div class="btns"><button class="btn" id="wnBack">${c.length && !w.length ? "🎁 Say thank you" : "💧 Water back"}</button><button class="btn alt" id="wnOk">Lovely!</button></div>`, el => {
     el.querySelector("#wnOk").onclick = back;
     el.querySelector("#wnBack").onclick = () => showFriends(back);
   });
@@ -240,8 +290,8 @@ function showFriends(back) {
     <p class="frlabel">Visit a friend's garden</p>
     <div class="frfind"><input class="codein" id="frId" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="FF-ABC234" aria-label="Friend's Player ID"><button class="btn" id="frGo">Visit</button></div>
     <p class="llnote" id="frMsg"></p>
-    <div class="frlist">${fr.length ? fr.map((x, i) => `<div class="frow" data-i="${i}"><button class="frvisit" data-i="${i}"><img alt="" src="${avImg(x.av)}"><span><b>${socEsc(x.n || pidShow(x.p))}</b><small class="frinfo">${x.lv ? `Level ${x.lv}` : pidShow(x.p)}${x.glv ? ` · Garden Lv ${x.glv}` : ""}${x.wb === dayKey() ? " · watered you 💧" : ""}</small></span></button>${socWateredToday(x.p) ? `<em class="frdone" aria-label="Watered today">✓💧</em>` : `<button class="frwater" data-i="${i}" aria-label="Water ${socEsc(x.n || "")}'s garden">💧</button>`}<button class="frdel" data-i="${i}" aria-label="Remove">✕</button></div>`).join("")
-      : `<p class="frempty">Share your Player ID with family and friends, then visit each other's gardens and water them every day 💧</p>`}</div>
+    <div class="frlist">${fr.length ? fr.map((x, i) => `<div class="frow" data-i="${i}"><button class="frvisit" data-i="${i}"><img alt="" src="${avImg(x.av)}"><span><b>${socEsc(x.n || pidShow(x.p))}</b><small class="frinfo">${x.lv ? `Level ${x.lv}` : pidShow(x.p)}${x.glv ? ` · Garden Lv ${x.glv}` : ""}${x.wb === dayKey() ? " · watered you 💧" : ""}${x.gb === dayKey() ? " · sent you 🎁" : ""}</small></span></button>${socWateredToday(x.p) ? `<em class="frdone" aria-label="Watered today">✓💧</em>` : `<button class="frwater" data-i="${i}" aria-label="Water ${socEsc(x.n || "")}'s garden">💧</button>`}${socGiftedToday(x.p) ? `<em class="frdone" aria-label="Gift sent today">✓🎁</em>` : `<button class="frgift" data-i="${i}" aria-label="Gift ${COIN_GIFT} coins to ${socEsc(x.n || "")}">🎁</button>`}<button class="frdel" data-i="${i}" aria-label="Remove">✕</button></div>`).join("")
+      : `<p class="frempty">Share your Player ID with family and friends, then visit each other's gardens and water them every day 💧 You can also send them 🎁 flower coins.</p>`}</div>
     <div class="btns"><button class="btn alt" id="frBack">Back</button></div>`, el => {
     el.closest(".card").classList.add("frcard");
     el.querySelector("#frBack").onclick = back;
@@ -254,14 +304,17 @@ function showFriends(back) {
     el.querySelectorAll(".frvisit").forEach(b => b.onclick = () => visitFriend(fr[+b.dataset.i].p, again, msg));
     el.querySelectorAll(".frwater").forEach(b => b.onclick = async () => { const x = fr[+b.dataset.i]; b.disabled = true; b.textContent = "…";
       const r = await socWater(x.p, x.n);
-      if (r.ok) { sfx("create"); b.outerHTML = `<em class="frdone">✓💧</em>`; msg.innerHTML = `💧 You watered <b>${socEsc(x.n || pidShow(x.p))}</b>'s garden!${r.got ? " You get 💧+1 too." : ""}`; }
+      if (r.ok) { sfx("create"); b.outerHTML = `<em class="frdone">✓💧</em>`; msg.innerHTML = `💧 You watered <b>${socEsc(x.n || pidShow(x.p))}</b>'s garden!${r.got ? ` You get 💧+1 and ⭐+${WATER_XP} XP.` : ""}`; }
       else { b.disabled = false; b.textContent = "💧"; msg.textContent = r.msg; } });
+    el.querySelectorAll(".frgift").forEach(b => b.onclick = () => { const x = fr[+b.dataset.i];
+      giftAsk(x.p, x.n || pidShow(x.p), ok => { if (ok) { sfx("create"); show(`<div class="ribbon">Gift sent</div><div class="wdrops" aria-hidden="true">🎁</div><h2>${socEsc(x.n || pidShow(x.p))} gets ${FC_SVG}${COIN_GIFT}!</h2><p>They'll get it next time they play.</p><p class="fbig">⭐ <b>+${GIFT_XP}</b> Garden XP for you</p><div class="btns"><button class="btn" id="gsOk">Lovely!</button></div>`, e3 => e3.querySelector("#gsOk").onclick = again); } },
+        (h, wire) => show(`<div class="ribbon">Gift</div>${h.replace(/<h3>/, "<h2>").replace(/<\/h3>/, "</h2>")}`, e2 => { e2.querySelectorAll("[data-x]").forEach(z => z.onclick = again); wire(e2); })); });
     el.querySelectorAll(".frdel").forEach(b => b.onclick = () => { const x = fr[+b.dataset.i];
       show(`<div class="ribbon">Friends</div><h2>Remove ${socEsc(x.n || pidShow(x.p))}?</h2><p>You can add them again any time with their Player ID: <b>${pidShow(x.p)}</b></p><div class="btns"><button class="btn" id="rmYes">Remove</button><button class="btn alt" id="rmNo">Cancel</button></div>`,
         e2 => { e2.querySelector("#rmNo").onclick = again; e2.querySelector("#rmYes").onclick = () => { save.friends = (save.friends || []).filter(y => y.p !== x.p); persist(); again(); }; }); });
     // freshen the names and levels in the list (quietly, a few at a time)
     fr.slice(0, 20).forEach(async (x, i) => { try { const d = await S.get("profiles/" + x.p); if (!d) return; Object.assign(x, { n: String(d.name || x.n || "").slice(0, 16), lv: d.lv, glv: d.glv, av: d.av });
-      const row = el.querySelector(`.frow[data-i="${i}"]`); if (row && row.isConnected) { row.querySelector("b").textContent = x.n; const s = row.querySelector(".frinfo"); if (s) s.textContent = `Level ${x.lv} · Garden Lv ${x.glv}${x.wb === dayKey() ? " · watered you 💧" : ""}`; row.querySelector("img").src = avImg(x.av); } } catch (e) {} });
+      const row = el.querySelector(`.frow[data-i="${i}"]`); if (row && row.isConnected) { row.querySelector("b").textContent = x.n; const s = row.querySelector(".frinfo"); if (s) s.textContent = `Level ${x.lv} · Garden Lv ${x.glv}${x.wb === dayKey() ? " · watered you 💧" : ""}${x.gb === dayKey() ? " · sent you 🎁" : ""}`; row.querySelector("img").src = avImg(x.av); } } catch (e) {} });
   });
 }
 // the garden from a profile, in the shape My Garden draws (unknown flowers or houses from a newer version are left out)
@@ -408,9 +461,11 @@ async function shareGarden(btn) {
 }
 
 /* --- start: publish my profile, collect water gifts, and tell the player on the home screen --- */
-setTimeout(async () => { if (!SOC()) return; socEnsure(); await socPublish(true); await socClaimWater(); if (socWaterNews && homeOpen) { const e = document.querySelector("#nFriends .h3new"); if (e) e.textContent = "💧" + socWaterNews.names.length; } }, 4000);
-setInterval(() => { if (socWaterNews && homeOpen && overlay.hidden && !document.getElementById("gardenView")) showWaterNews(() => { hide(); showHome(); }); }, 2500);
-document.addEventListener("visibilitychange", () => { if (!SOC()) return; if (document.hidden) socPublish(); else setTimeout(socClaimWater, 1500); });
+setTimeout(async () => { if (!SOC()) return; socEnsure(); await socPublish(true); await socClaimAll(); if (socWaterNews && homeOpen) { const e = document.querySelector("#nFriends .h3new"); if (e) e.textContent = socBadge(); } }, 4000);
+let socClaiming = false;
+async function socClaimAll() { if (socClaiming) return; socClaiming = true; try { await socClaimWater(); await socClaimCoins(); } finally { socClaiming = false; } }   // both first, then one window
+setInterval(() => { if (socWaterNews && !socClaiming && homeOpen && overlay.hidden && !document.getElementById("gardenView")) showWaterNews(() => { hide(); showHome(); }); }, 2500);
+document.addEventListener("visibilitychange", () => { if (!SOC()) return; if (document.hidden) socPublish(); else setTimeout(socClaimAll, 1500); });
 
 '''
 rep("/* ============ Home screen ============ */", code + "/* ============ Home screen ============ */")
@@ -446,7 +501,9 @@ css = """
 .frvisit b{font:800 18px/1.15 var(--display);color:#5a2e44;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .frvisit small{font:700 13px/1.25 var(--body);color:#9a6a80}
 .frwater{flex:none;width:52px;height:46px;border:0;border-radius:14px;background:linear-gradient(180deg,#8fd3ff,#4aa8e8);box-shadow:0 4px 0 #2f7fbf;font-size:24px;cursor:pointer}
-.frdone{flex:none;font-style:normal;font:800 15px/1 var(--body);color:#3a9a3e;width:52px;text-align:center}
+.frgift{flex:none;width:52px;height:46px;border:0;border-radius:14px;background:linear-gradient(180deg,#ffd77a,#f3a72a);box-shadow:0 4px 0 #c27a12;font-size:24px;cursor:pointer}
+.frdone{flex:none;font-style:normal;font:800 14px/1 var(--body);color:#3a9a3e;width:44px;text-align:center}
+.frow .frwater,.frow .frgift{width:46px}
 .frdel{flex:none;border:0;background:none;color:#c9a3b5;font-size:18px;padding:6px;cursor:pointer}
 .codein.nickin{text-transform:none;letter-spacing:0;font:800 22px/1.1 var(--display)}
 .frempty{background:#fff;border-radius:16px;padding:14px;margin:0;font:700 15px/1.4 var(--body);color:#8a5e6e}
@@ -455,7 +512,9 @@ css = """
 .wdrops{font-size:44px;letter-spacing:.1em;margin:4px 0 0}
 .farm .fvname{max-width:46%;overflow:hidden;white-space:nowrap;font:800 17px/1 var(--display);color:#5a2e44;padding:8px 12px}
 .farm .fvname b{overflow:hidden;text-overflow:ellipsis}
-.farm.fvisit .fbtns .btn{flex:1 1 40%}
+.farm.fvisit .fbtns .btn{flex:1 1 28%;padding-left:6px;padding-right:6px;font-size:17px;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}
+.farm.fvisit .fbtns .btn .fcoin{width:20px;height:20px}
+.farm .fbtns .btn.fgift{background:linear-gradient(180deg,#ffd77a,#f3a72a);color:#5a3a10;box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 5px 0 #c27a12}
 .farm .fbtns .btn.fwater{background:linear-gradient(180deg,#8fd3ff,#4aa8e8);box-shadow:inset 0 2px 0 rgba(255,255,255,.4),0 5px 0 #2f7fbf}
 .farm.fvisit .fplot,.farm.fvisit .fareabtn{cursor:default}
 .farm.fvisit .fplot:disabled,.farm.fvisit .fareabtn:disabled{opacity:1;color:inherit}

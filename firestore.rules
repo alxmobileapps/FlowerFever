@@ -36,6 +36,20 @@ service cloud.firestore {
         allow read, delete: if request.auth != null
           && get(/databases/$(database)/documents/profiles/$(pid)).data.uid == request.auth.uid;
       }
+
+      // Coin gifts: 100 flower coins, one per friend per day (id: <their Player ID>_<YYYYMMDD>), never changed after.
+      match /coins/{gid} {
+        allow create: if request.auth != null
+          && request.resource.data.keys().hasOnly(['from', 'name', 'day', 'n', 'at'])
+          && request.resource.data.n == 100
+          && request.resource.data.from is string && request.resource.data.from != pid
+          && request.resource.data.day is string && request.resource.data.day.matches('[0-9]{8}')
+          && request.resource.data.name is string && request.resource.data.name.size() <= 16
+          && gid == request.resource.data.from + '_' + request.resource.data.day
+          && get(/databases/$(database)/documents/profiles/$(request.resource.data.from)).data.uid == request.auth.uid;
+        allow read, delete: if request.auth != null
+          && get(/databases/$(database)/documents/profiles/$(pid)).data.uid == request.auth.uid;
+      }
     }
 
     match /{document=**} {
