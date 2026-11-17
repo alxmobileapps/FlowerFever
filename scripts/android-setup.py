@@ -36,6 +36,10 @@ def manifest(s):
     for perm in ("READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO", "READ_MEDIA_VISUAL_USER_SELECTED", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"):
         s = re.sub(r'\s*<uses-permission[^>]*android\.permission\.' + perm + r'"[^>]*/>', '', s)
         s = s.replace("</manifest>", f'    <uses-permission android:name="android.permission.{perm}" tools:node="remove"/>\n</manifest>', 1)
+    # Portrait lock implies a required "portrait screen" feature; mark it optional so Play does not
+    # hide the game from devices without one (some tablets, Chromebooks, Android XR).
+    if "android.hardware.screen.portrait" not in s:
+        s = s.replace("</manifest>", '    <uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>\n</manifest>', 1)
     return s
 edit(A / "AndroidManifest.xml", manifest)
 print("AdMob app id:", ADMOB_APP_ID)
