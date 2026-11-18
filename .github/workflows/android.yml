@@ -98,6 +98,7 @@ jobs:
           python scripts/patch-bgm-webaudio.py
           python scripts/patch-ad-levels.py
           python scripts/patch-level16-heart.py
+          python scripts/patch-garden-bg.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
