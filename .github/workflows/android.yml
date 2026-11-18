@@ -100,6 +100,7 @@ jobs:
           python scripts/patch-level16-heart.py
           python scripts/patch-goals-swamp.py
           python scripts/patch-combo-shower-fx.py
+          python scripts/patch-lift-overlay.py
           python scripts/patch-garden-bg.py
           python scripts/android-setup.py
 
