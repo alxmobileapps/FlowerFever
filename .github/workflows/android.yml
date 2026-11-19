@@ -102,6 +102,7 @@ jobs:
           python scripts/patch-combo-shower-fx.py
           python scripts/patch-lift-overlay.py
           python scripts/patch-garden-bg.py
+          python scripts/patch-flower-ask.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
