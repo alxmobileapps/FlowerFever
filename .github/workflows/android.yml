@@ -106,6 +106,7 @@ jobs:
           python scripts/patch-flower-ask.py
           python scripts/patch-slow-fall.py
           python scripts/patch-voices4.py
+          python scripts/patch-unbelievable.py
           python scripts/patch-tablet-board.py
           python scripts/android-setup.py
 
