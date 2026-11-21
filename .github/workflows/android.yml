@@ -110,6 +110,7 @@ jobs:
           python scripts/patch-unbelievable.py
           python scripts/patch-tablet-board.py
           python scripts/patch-friends-scroll.py
+          python scripts/patch-audio-resume.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
