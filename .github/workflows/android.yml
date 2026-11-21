@@ -108,6 +108,7 @@ jobs:
           python scripts/patch-voices4.py
           python scripts/patch-unbelievable.py
           python scripts/patch-tablet-board.py
+          python scripts/patch-friends-scroll.py
           python scripts/android-setup.py
 
       - name: Build debug APK (Google test ads, safe to play on your own phone)
